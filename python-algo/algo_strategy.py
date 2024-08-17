@@ -76,8 +76,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         # First, place basic defenses
         self.build_defences(game_state)
         # Now build reactive defenses based on where the enemy scored
-        self.build_reactive_defense(game_state)
-
+        # self.build_reactive_defense(game_state)
         # If the turn is less than 5, stall with interceptors and wait to see enemy's base
         if game_state.turn_number < 5:
             self.stall_with_interceptors(game_state)
@@ -110,15 +109,12 @@ class AlgoStrategy(gamelib.AlgoCore):
         # More community tools available at: https://terminal.c1games.com/rules#Download
 
         # Place turrets that attack enemy units
-        turret_locations = [[0, 13], [27, 13], [8, 11], [19, 11], [13, 11], [14, 11]]
+        turret_locations = [[3, 13], [23, 12], [12, 3], [13, 3]]
         # attempt_spawn will try to spawn units if we have resources, and will check if a blocking unit is already there
         game_state.attempt_spawn(TURRET, turret_locations)
-        
-        # Place walls in front of turrets to soak up damage for them
-        wall_locations = [[8, 12], [19, 12]]
-        game_state.attempt_spawn(WALL, wall_locations)
+    
         # upgrade walls so they soak more damage
-        game_state.attempt_upgrade(wall_locations)
+        game_state.attempt_upgrade(turret_locations)
 
     def build_reactive_defense(self, game_state):
         """
