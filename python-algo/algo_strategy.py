@@ -4,6 +4,7 @@ import math
 import warnings
 from sys import maxsize
 import json
+from defense import Defense
 
 """
 Most of the algo code you write will be in this file unless you create new
@@ -25,6 +26,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         seed = random.randrange(maxsize)
         random.seed(seed)
         gamelib.debug_write('Random seed: {}'.format(seed))
+        self.defense_instance = Defense(self)
 
     def on_game_start(self, config):
         """ 
@@ -73,7 +75,8 @@ class AlgoStrategy(gamelib.AlgoCore):
         If there are no stationary units to attack in the front, we will send Scouts to try and score quickly.
         """
         # First, place basic defenses
-        self.build_defences(game_state)
+        # self.build_defences(game_state)
+        self.defense_instance.turret_opt(game_state)
         # Now build reactive defenses based on where the enemy scored
         # self.build_reactive_defense(game_state)
         # If the turn is less than 5, stall with interceptors and wait to see enemy's base
