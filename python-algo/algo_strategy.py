@@ -58,6 +58,10 @@ class AlgoStrategy(gamelib.AlgoCore):
         gamelib.debug_write('Performing turn {} of your custom algo strategy'.format(game_state.turn_number))
         game_state.suppress_warnings(True)  # Comment or remove this line to enable warnings.
 
+        init_turret_locations = [[4, 13], [23, 13], [14, 9]]
+        game_state.attempt_spawn(TURRET, init_turret_locations)
+        game_state.attempt_upgrade(init_turret_locations)
+
         self.starter_strategy(game_state)
 
         game_state.submit_turn()
@@ -76,7 +80,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         """
         # First, place basic defenses
         # self.build_defences(game_state)
-        self.defense_instance.turret_opt(game_state)
+        self.defense_instance.turret_opt(game_state, TURRET)
         # Now build reactive defenses based on where the enemy scored
         # self.build_reactive_defense(game_state)
         # If the turn is less than 5, stall with interceptors and wait to see enemy's base
