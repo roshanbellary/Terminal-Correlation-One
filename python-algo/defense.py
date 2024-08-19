@@ -91,10 +91,10 @@ class Defense(gamelib.AlgoCore):
                         # Change to upgraded turret damage
                         upgraded_turret_cost_ratios[x][y] = (14 / upgraded_turret_costs[x][y]) / (cost / game_state.SP)
 
-                if np.min(new_turret_cost_ratios) > 1:
+                if np.min(new_turret_cost_ratios) > 0.5:
                     pos = np.unravel_index(np.argmin(new_turret_cost_ratios), new_turret_cost_ratios.shape)
                     game_state.attempt_spawn(TURRET, [pos])
-                elif np.min(upgraded_turret_costs) > 1:
+                elif np.min(upgraded_turret_costs) > 0.5:
                     pos = np.unravel_index(np.argmin(upgraded_turret_cost_ratios), upgraded_turret_cost_ratios.shape)
                     game_state.attempt_spawn(TURRET, [pos])
                     game_state.attempt_upgrade([pos])
