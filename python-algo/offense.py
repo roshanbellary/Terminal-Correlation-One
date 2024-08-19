@@ -107,19 +107,21 @@ class Offense(gamelib.AlgoCore):
         Find the least damage cost sectors and send troops to attack there
         """
         #len(game_state.get_attackers(path_location, 0))
-        if game_state.get_resoure(MP) > self.MP_Limiter:
+        if game_state.get_resource(MP) > self.MP_Limiter:
             avg_damage_dict = self.calculate_sector_average_damage(game_state)
             min_damage_sector = min(avg_damage_dict, key=avg_damage_dict.get)
             sector_edge_dict = self.find_opposing_friendly_edges(game_state)
             friendly_edge_set = sector_edge_dict[min_damage_sector]
-            unit_numbers = game_state.get_resource(MP)
+            unit_numbers = game_state.get_resource(MP) 
             available_locations = [loc for loc in friendly_edge_set if not game_state.contains_stationary_unit(loc)]
             # Get the cost of a SCOUT in MP
             scout_cost = game_state.type_cost(SCOUT)[MP]
             
             # Calculate the number of SCOUT units we can afford
-            num_scouts = unit_numbers // scout_cost
+            num_scouts = (int)(unit_numbers / scout_cost)
             # Attempt to spawn SCOUT units at random location from friendly_edge_set
+            if not available_locations:
+                return
             spawn_location = random.choice(available_locations)
             game_state.attempt_spawn(SCOUT, spawn_location, num_scouts)
     
