@@ -58,7 +58,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         gamelib.debug_write('Performing turn {} of your custom algo strategy'.format(game_state.turn_number))
         game_state.suppress_warnings(True)  # Comment or remove this line to enable warnings.
 
-        init_turret_locations = [[4, 13], [23, 13], [14, 9]]
+        init_turret_locations = [[4, 13], [23, 13], [13, 9]]
         game_state.attempt_spawn(TURRET, init_turret_locations)
         game_state.attempt_upgrade(init_turret_locations)
 
