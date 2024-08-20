@@ -16,13 +16,13 @@ class Offense(gamelib.AlgoCore):
         def cross_product(p1, p2, p3):
             """Calculate the cross product of vectors p1p2 and p1p3."""
             return (p2[0] - p1[0]) * (p3[1] - p1[1]) - (p2[1] - p1[1]) * (p3[0] - p1[0])
-        
+
         def is_same_side(p1, p2, a, b):
             """Check if points p1 and p2 are on the same side of the line ab."""
             cp1 = cross_product(a, b, p1)
             cp2 = cross_product(a, b, p2)
             return cp1 * cp2 >= 0
-        
+
         # Check if the point is on the same side of each of the rectangle's edges
         p1, p2, p3, p4 = rect_points
         return (is_same_side(point, p1, p2, p3) and
@@ -36,11 +36,11 @@ class Offense(gamelib.AlgoCore):
     def check_sector_one_right(self, point):
         boundary = [[18.5, 13.5], [23, 18], [27.5, 13.5], [23, 9]]
         return self.is_point_in_rectangle(point, boundary)
-    
+
     def check_sector_two(self, point):
         boundary = [[7.5, 13.5], [13.5, 19], [19.5, 13.5], [13.5, 8]]
         return self.is_point_in_rectangle(point, boundary)
-    
+
     def check_sector_three_left(self, point):
         boundary = [[4,18], [9, 23], [13, 19], [8, 14]]
         return self.is_point_in_rectangle(point, boundary)
@@ -71,7 +71,7 @@ class Offense(gamelib.AlgoCore):
         # Calculate the damage in each sector
         for sector, points in sector_points.items():
             for point in points:
-                for attacker in game_state.get_attackers(point, 0):
+                for attacker in game_state.get_attackers(point, 1):
                  sector_damage_totals[sector] += attacker.damage_i *(attacker.health)/attacker.max_health
                 sector_point_counts[sector] += 1
 
@@ -86,7 +86,7 @@ class Offense(gamelib.AlgoCore):
         res = [start]
         while True:
             if (start[0] == end[0] and start[1] == end[1]):
-                break 
+                break
             start[0] += incrementer[0]
             start[1] += incrementer[1]
             res.append(start)
@@ -106,7 +106,7 @@ class Offense(gamelib.AlgoCore):
         return sector_dict
     def calculate_damage(self, game_state, point):
         damage = 0
-        for attacker in game_state.get_attackers(point, 0):
+        for attacker in game_state.get_attackers(point, 1):
             attacker.health
             damage += attacker.damage_i*(attacker.health)/(attacker.max_health)
         return damage
@@ -116,7 +116,7 @@ class Offense(gamelib.AlgoCore):
             if (node[1] == 13):
                 path = path[:idx + 1]
                 break
-        
+
         curr = path[-1]
 
         if point[0] > 13:
@@ -177,7 +177,7 @@ class Offense(gamelib.AlgoCore):
                 # Get number of enemy turrets that can attack each location and multiply by turret damage
                 damage += self.calculate_damage(game_state, path_location)
             damages.append(damage)
-        
+
         num_scouts = game_state.number_affordable(SCOUT)
         scout_health = num_scouts *  gamelib.GameUnit(SCOUT, game_state.config).max_health
         spawn_location = friendly_edges[damages.index(min(damages))]
@@ -186,7 +186,7 @@ class Offense(gamelib.AlgoCore):
             if (num_scouts == 0):
                 break
             used = False
-            for attacker in game_state.get_attackers(loc, 0):
+            for attacker in game_state.get_attackers(loc, 1):
                 if (not used):
                     if ([attacker.x, attacker.y] not in blacklisted_attackers):
                         if (gamelib.GameMap.distance_between_locations(loc, [attacker.x, attacker.y]) <= gamelib.GameUnit(SCOUT, game_state.config).attackRange):
