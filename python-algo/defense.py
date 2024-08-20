@@ -116,9 +116,6 @@ class Defense(gamelib.AlgoCore):
                                     cost -= self.curr_game_state.type_cost(TURRET)[0]
                                 if unit.upgraded:
                                     cost = 0
-                                    # cost -= 3
-                            # if x == 15 and y == 2:
-                            #     gamelib.debug_write(unit.upgraded)
                             if upgraded_turret_costs[x][y] != 0 and cost != 0:
                                 upgraded_turret_cost_ratios[x][y] = (UPGRADE_TURRET_DAMAGE / upgraded_turret_costs[x][y]) / (
                                         cost / self.curr_game_state.get_resource(SP))
@@ -184,10 +181,6 @@ class Defense(gamelib.AlgoCore):
                 for path_location in path:
                     for unit in self.curr_game_state.get_attackers(path_location, 0):
                         cost += unit.damage_i * unit.health / unit.max_health
-                        # if path_location == [13, 4]:
-                        #     gamelib.debug_write([unit.x, unit.y])
-                        # if unit.x == 13 and unit.y == 0:
-                        #     print('found it')
                         turret_hits[unit.x][unit.y] += unit.damage_i
             path_costs.append(cost)
 
@@ -205,10 +198,6 @@ class Defense(gamelib.AlgoCore):
                     if i[1] < self.curr_game_state.game_map.HALF_ARENA:
                         point_costs[i[0]][i[1]] += path_costs[loc]
                         path_counts[i[0]][i[1]] += 1
-        # for i in self.curr_game_state.game_map.get_locations_in_range([13, 0], 4.5):
-        #     if point_costs[i[0]][i[1]] != 0:
-        #         gamelib.debug_write(i)
-        #         gamelib.debug_write(point_costs[i[0]][i[1]])
 
         point_costs = np.divide(point_costs, path_counts, out=np.zeros_like(point_costs, dtype=float),
                                 where=path_counts != 0)
