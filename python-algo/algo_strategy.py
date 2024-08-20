@@ -82,7 +82,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         """
         # First, place basic defenses
         # self.build_defences(game_state)
-        self.defense_instance.turret_opt(game_state, TURRET)
+        self.defense_instance.turret_opt(game_state, TURRET, SP)
         self.offense_instance.send_the_cavalry(game_state, SCOUT, MP)
         # # Now build reactive defenses based on where the enemy scored
         # # self.build_reactive_defense(game_state)
