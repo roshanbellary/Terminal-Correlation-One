@@ -83,7 +83,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         # First, place basic defenses
         # self.build_defences(game_state)
         self.defense_instance.turret_opt(game_state, TURRET, SP)
-        self.offense_instance.send_the_cavalry(game_state, SCOUT, MP)
+        self.offense_instance.send_the_cavalry(game_state, SCOUT, MP, SP)
         # # Now build reactive defenses based on where the enemy scored
         # # self.build_reactive_defense(game_state)
         # # If the turn is less than 5, stall with interceptors and wait to see enemy's base
@@ -160,15 +160,15 @@ class AlgoStrategy(gamelib.AlgoCore):
         # By asking attempt_spawn to spawn 1000 units, it will essentially spawn as many as we have resources for
         game_state.attempt_spawn(DEMOLISHER, [24, 10], 1000)
 
-    def least_damage_spawn_location(self, game_state, location_options):
-        """
-        This function will help us guess which location is the safest to spawn moving units from.
-        It gets the path the unit will take then checks locations on that path to 
-        estimate the path's damage risk.
-        """
-
-        # Now just return the location that takes the least damage
-        return location_options[damages.index(min(damages))]
+    # def least_damage_spawn_location(self, game_state, location_options):
+    #     """
+    #     This function will help us guess which location is the safest to spawn moving units from.
+    #     It gets the path the unit will take then checks locations on that path to
+    #     estimate the path's damage risk.
+    #     """
+    #
+    #     # Now just return the location that takes the least damage
+    #     return location_options[damages.index(min(damages))]
 
     def detect_enemy_unit(self, game_state, unit_type=None, valid_x=None, valid_y=None):
         total_units = 0
