@@ -136,14 +136,6 @@ class Offense(gamelib.AlgoCore):
                 curr[1] += direction[direction_set][1]
                 direction_set = (direction_set + 1) % 2
         return path
-    """
-        -Attacks should consider low health in case of desparation need to send all MP to send out scouts
-            -Do when health < 3
-        -Save MP while minimum damage path would still wipe out all scouts
-            -Probably should only launch attacks when they can definitively take out 3 points or more from opponent health until we are desperate
-        -When launching attack
-            -If opponent has high SP then launch attack on second least well-defended sector to be careful of 
-    """
     def attack_via_straights(self, game_state, SCOUT, MP):
         if game_state.get_resource(MP) > self.MP_Limiter:
             friendly_edges = game_state.game_map.get_edge_locations(
@@ -162,6 +154,14 @@ class Offense(gamelib.AlgoCore):
             # Attempt to spawn SCOUT units at minimum damage location
             spawn_location = friendly_edges[damages.index(min(damages))]
             game_state.attempt_spawn(SCOUT, spawn_location, num_scouts)
+    """
+        -Attacks should consider low health in case of desparation need to send all MP to send out scouts
+            -Do when health < 3
+        -Save MP while minimum damage path would still wipe out all scouts
+            -Probably should only launch attacks when they can definitively take out 3 points or more from opponent health until we are desperate
+        -When launching attack
+            -If opponent has high SP then launch attack on second least well-defended sector to be careful of 
+    """
     def send_the_cavalry(self, game_state, SCOUT, MP, SP):
         """
         Find the least damage cost sectors and send troops to attack there
@@ -201,8 +201,9 @@ class Offense(gamelib.AlgoCore):
         if (game_state.my_health < 3 and num_scouts > 0):
             game_state.attempt_spawn(SCOUT, spawn_location, 1000)
             return
-        # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 20%
+        # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 30%
         # checks if we are not at MP limit for it to not grow enough in the future
+        # if we are at MP limit or if we can make a sizeable enough dent then we go for an attack
         if (num_scouts < 0.3 * game_state.enemy_health and game_state.project_future_MP(turns_in_future=1) > game_state.get_resource(MP)):
             return
         elif game_state.get_resource(SP, 1) > 20:
