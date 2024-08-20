@@ -26,7 +26,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         seed = random.randrange(maxsize)
         random.seed(seed)
         gamelib.debug_write('Random seed: {}'.format(seed))
-        self.defense_instance = Defense(self)
+        self.defense_instance = Defense()
         self.offense_instance = Offense(self)
 
     def on_game_start(self, config):
