@@ -35,6 +35,12 @@ class Defense(gamelib.AlgoCore):
 
                 point_costs, path_counts = self.calc_point_costs(path_costs)
 
+                # for y in range(half_arena):
+                #     for x in range(arena_size):
+                #         # point_costs[x][y] = point_costs[x][y] * np.abs(half_arena - y) * np.abs(half_arena - np.abs(half_arena - x)) / 169
+                #         if y > half_arena / 2:
+                #             point_costs[x][y] = point_costs[x][y] / 2
+
                 try:
                     turret_costs = np.zeros((arena_size, half_arena))
                     turret_counts = np.zeros((arena_size, half_arena))
@@ -122,12 +128,16 @@ class Defense(gamelib.AlgoCore):
                         new_turret_cost_ratios = np.zeros((arena_size, half_arena))
                         for y in range(half_arena):
                             for x in range(arena_size):
-                                if turret_costs[x][y] != 0:
+                                if turret_costs[x][y] != 0 and self.curr_game_state.can_spawn(TURRET, [x, y]):
                                     new_turret_cost_ratios[x][y] = (gamelib.GameUnit(TURRET,
                                                                                      self.curr_game_state.config).damage_i /
                                                                     turret_costs[x][y]) / \
                                                                    (self.curr_game_state.type_cost(TURRET)[
                                                                         0] / self.curr_game_state.get_resource(SP))
+                                    if y > half_arena / 2:
+                                        new_turret_cost_ratios[x][y] *= 2
+                                    # new_turret_cost_ratios[x][y] = new_turret_cost_ratios[x][y] * y * np.abs(half_arena - x) / 169
+                                    new_turret_cost_ratios[x][y] *= y / 13
                     except Exception as e:
                         gamelib.debug_write(f"Error calculating new turret cost ratios: {e}")
 
@@ -149,6 +159,11 @@ class Defense(gamelib.AlgoCore):
                                                                             (cost / self.curr_game_state.get_resource(
                                                                                 SP))
                                         upgraded_turret_points[x][y] = cost
+                                        if y > half_arena / 2:
+                                            upgraded_turret_cost_ratios[x][y] *= 2
+                                        # upgraded_turret_cost_ratios[x][y] = upgraded_turret_cost_ratios[x][y] * y * np.abs(
+                                        #     half_arena - x) / 169
+                                        upgraded_turret_cost_ratios[x][y] *= y / 13
                     except Exception as e:
                         gamelib.debug_write(f"Error calculating upgraded turret cost ratios: {e}")
 
@@ -168,7 +183,7 @@ class Defense(gamelib.AlgoCore):
                 # curr_max_turret_pos = np.array(
                 #     np.unravel_index(np.argmin(curr_turret_cost_ratios), curr_turret_cost_ratios.shape)).reshape(1,
                 #                                                                                                  -1).tolist()
-                if np.max(upgraded_turret_cost_ratios) > 0.1 and (
+                if np.max(upgraded_turret_cost_ratios) > 5 and (
                         not self.curr_game_state.contains_stationary_unit(upgraded_max_turret_pos[0]) or not
                 self.curr_game_state.game_map[upgraded_max_turret_pos[0]][
                     0].upgraded):
@@ -183,7 +198,7 @@ class Defense(gamelib.AlgoCore):
                     self.curr_game_state.game_map.add_unit(TURRET, upgraded_max_turret_pos[0])
                     self.curr_game_state.game_map[upgraded_max_turret_pos[0]][0].upgrade()
                     # self.curr_SP -= upgraded_turret_points[upgraded_max_turret_pos[0][0]][upgraded_max_turret_pos[0][1]]
-                elif np.max(new_turret_cost_ratios) > 0.1 and self.curr_game_state.can_spawn(TURRET,
+                elif np.max(new_turret_cost_ratios) > 5 and self.curr_game_state.can_spawn(TURRET,
                                                                                              new_max_turret_pos[0]):
                     gamelib.debug_write('add new')
                     gamelib.debug_write(new_max_turret_pos)
@@ -214,9 +229,7 @@ class Defense(gamelib.AlgoCore):
             if path is not None:
                 for path_location in path:
                     for unit in self.curr_game_state.get_attackers(path_location, 0):
-                        loc_cost = unit.damage_i * unit.health / unit.max_health
-                        # if location > self.curr_game_state.game_map.HALF_ARENA / 2:
-                        #     loc_cost = loc_cost * 2
+                        loc_cost = unit.damage_i * np.sqrt(unit.health) / unit.max_health
                         cost += loc_cost
                         turret_hits[unit.x][unit.y] += unit.damage_i
             path_costs.append(cost)
