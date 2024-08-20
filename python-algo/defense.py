@@ -10,8 +10,8 @@ import json
 def calc_point_costs(game_state, path_costs):
     enemy_edges = game_state.game_map.get_edge_locations(
         game_state.game_map.TOP_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.TOP_RIGHT)
-    point_costs = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.ARENA_SIZE))
-    path_counts = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.ARENA_SIZE))
+    point_costs = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
+    path_counts = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
     for loc in range(len(enemy_edges)):
         path = game_state.find_path_to_edge(enemy_edges[loc])
         if path is not None:
@@ -32,14 +32,16 @@ class Defense(gamelib.AlgoCore):
 
     def turret_opt(self, game_state, TURRET):
         while True:
+            gamelib.debug_write('again')
             if game_state.get_resource(0) > 0:
                 path_costs, turret_hits = self.calc_path_damages(game_state)
 
                 point_costs, path_counts = calc_point_costs(game_state, path_costs)
-                turret_hits = turret_hits / path_counts
+                turret_hits = np.divide(turret_hits, path_counts, out=np.zeros_like(turret_hits, dtype=float),
+                                        where=path_counts != 0)
 
-                turret_costs = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
-                turret_counts = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
+                turret_costs = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
+                turret_counts = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
                 for y in range(game_state.game_map.HALF_ARENA):
                     for x in range(game_state.game_map.ARENA_SIZE):
                         if game_state.game_map.in_arena_bounds([x, y]):
@@ -47,28 +49,28 @@ class Defense(gamelib.AlgoCore):
                                                                                 gamelib.GameUnit(TURRET,
                                                                                                  game_state.config).attackRange)
                             for loc in circle:
-                                turret_costs[x][y] += point_costs[loc[0]][loc[1]]
-                                turret_counts[x][y] += 1
-                # turret_costs = turret_costs / turret_counts
-                print(turret_costs)
+                                if loc[1] < game_state.game_map.HALF_ARENA:
+                                    turret_costs[x][y] += point_costs[loc[0]][loc[1]]
+                                    turret_counts[x][y] += 1
                 turret_costs = np.divide(turret_costs, turret_counts, out=np.zeros_like(turret_costs, dtype=float),
                                          where=turret_counts != 0)
 
-                upgraded_turret_costs = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
-                upgraded_turret_counts = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
+                upgraded_turret_costs = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
+                upgraded_turret_counts = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
                 for y in range(game_state.game_map.HALF_ARENA):
                     for x in range(game_state.game_map.ARENA_SIZE):
                         if game_state.game_map.in_arena_bounds([x, y]):
                             # Change to upgraded turret range
                             circle = game_state.game_map.get_locations_in_range([x, y], 5)
                             for loc in circle:
-                                upgraded_turret_costs[x][y] += point_costs[loc[0]][loc[1]]
-                                upgraded_turret_counts[x][y] += 1
+                                if loc[1] < game_state.game_map.HALF_ARENA:
+                                    upgraded_turret_costs[x][y] += point_costs[loc[0]][loc[1]]
+                                    upgraded_turret_counts[x][y] += 1
                 upgraded_turret_costs = np.divide(upgraded_turret_costs, upgraded_turret_counts,
                                                   out=np.zeros_like(upgraded_turret_costs, dtype=float),
                                                   where=upgraded_turret_counts != 0)
 
-                curr_turret_cost_ratios = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
+                curr_turret_cost_ratios = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
                 for y in range(game_state.game_map.HALF_ARENA):
                     for x in range(game_state.game_map.ARENA_SIZE):
                         if game_state.game_map.in_arena_bounds([x, y]):
@@ -83,7 +85,7 @@ class Defense(gamelib.AlgoCore):
                                                                  game_state.config).cost / game_state.get_resource(0)
                                     curr_turret_cost_ratios[x][y] = damage_chg / point_chg
 
-                new_turret_cost_ratios = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
+                new_turret_cost_ratios = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
                 for y in range(game_state.game_map.HALF_ARENA):
                     for x in range(game_state.game_map.ARENA_SIZE):
                         if turret_costs[x][y] != 0:
@@ -92,7 +94,7 @@ class Defense(gamelib.AlgoCore):
                                                            / (game_state.type_cost(TURRET)[0] / game_state.get_resource(
                                 0))
 
-                upgraded_turret_cost_ratios = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
+                upgraded_turret_cost_ratios = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
                 for y in range(game_state.game_map.HALF_ARENA):
                     for x in range(game_state.game_map.ARENA_SIZE):
                         cost = game_state.type_cost(TURRET, True)[0]
@@ -102,13 +104,17 @@ class Defense(gamelib.AlgoCore):
                                     cost -= game_state.type_cost(TURRET)
                             # Change to upgraded turret damage
                             upgraded_turret_cost_ratios[x][y] = (14 / upgraded_turret_costs[x][y]) / (
-                                        cost / game_state.get_resource(0))
+                                    cost / game_state.get_resource(0))
 
-                if np.min(upgraded_turret_costs) > 1:
+                gamelib.debug_write('ratios')
+                gamelib.debug_write(np.max(upgraded_turret_cost_ratios))
+                gamelib.debug_write(np.max(new_turret_cost_ratios))
+                gamelib.debug_write(np.min(curr_turret_cost_ratios))
+                if np.max(upgraded_turret_cost_ratios) > 0.1:
                     pos = np.unravel_index(np.argmin(upgraded_turret_cost_ratios), upgraded_turret_cost_ratios.shape)
                     game_state.attempt_spawn(TURRET, [pos])
                     game_state.attempt_upgrade([pos])
-                elif np.min(new_turret_cost_ratios) > 1:
+                elif np.max(new_turret_cost_ratios) > 0.1:
                     pos = np.unravel_index(np.argmin(new_turret_cost_ratios), new_turret_cost_ratios.shape)
                     game_state.attempt_spawn(TURRET, [pos])
                 elif np.min(curr_turret_cost_ratios) < 1:
@@ -123,14 +129,14 @@ class Defense(gamelib.AlgoCore):
         enemy_edges = game_state.game_map.get_edge_locations(
             game_state.game_map.TOP_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.TOP_RIGHT)
         path_costs = []
-        turret_hits = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.ARENA_SIZE))
+        turret_hits = np.zeros((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
 
         for location in enemy_edges:
             path = game_state.find_path_to_edge(location)
             path_costs.append(0)
             if path is not None:
                 for path_location in path:
-                    attackers = game_state.get_attackers(path_location, 0)
+                    attackers = game_state.get_attackers(path_location, 1)
                     for unit in attackers:
                         # Does this account for whether the turret is upgraded?
                         path_costs[-1] += gamelib.GameUnit(unit.unit_type, game_state.config).damage_i * \
@@ -138,4 +144,5 @@ class Defense(gamelib.AlgoCore):
                                           gamelib.GameUnit(unit.unit_type, game_state.config).max_health
                         turret_hits[unit.x][unit.y] += gamelib.GameUnit(unit.unit_type, game_state.config).damage_i
 
+        # gamelib.debug_write(turret_hits)
         return path_costs, turret_hits
