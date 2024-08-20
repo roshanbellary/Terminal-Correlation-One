@@ -206,7 +206,7 @@ class Offense(gamelib.AlgoCore):
         # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 30%
         # checks if we are not at MP limit for it to not grow enough in the future
         # if we are at MP limit or if we can make a sizeable enough dent then we go for an attack
-        if (num_scouts < 0.3 * game_state.enemy_health and game_state.project_future_MP(turns_in_future=1) > game_state.get_resource(MP)):
+        if (num_scouts < 0.4 * game_state.enemy_health and game_state.project_future_MP(turns_in_future=1) > game_state.get_resource(MP)):
             return
         elif game_state.get_resource(SP, 1) > 20:
             # checks if opponent has enough SP to possibly mess with our path game and if so then we do sector based attacsk
