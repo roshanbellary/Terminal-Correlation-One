@@ -189,14 +189,14 @@ class Offense(gamelib.AlgoCore):
             for attacker in game_state.get_attackers(loc, 1):
                 if (not used):
                     if (tuple([attacker.x, attacker.y]) not in blacklisted_attackers):
-                        if (gamelib.GameMap.distance_between_locations(loc, [attacker.x, attacker.y]) <= gamelib.GameUnit(SCOUT, game_state.config).attackRange):
+                        if (game_state.game_map.distance_between_locations(loc, [attacker.x, attacker.y]) <= gamelib.GameUnit(SCOUT, game_state.config).attackRange):
                             blacklisted_attackers[tuple([attacker.x, attacker.y])] = attacker.health - num_scouts *  gamelib.GameUnit(SCOUT, game_state.config).damage_f
                             scout_health -= attacker.damage_i
                             num_scouts = (int)(1 + scout_health / (gamelib.GameUnit(SCOUT, game_state.config).health))
                     elif blacklisted_attackers[tuple([attacker.x, attacker.y])] < 0:
                         continue
                     else:
-                        if (gamelib.GameMap.distance_between_locations(loc, [attacker.x, attacker.y]) <= gamelib.GameUnit(SCOUT, game_state.config).attackRange):
+                        if (game_state.game_map.distance_between_locations(loc, [attacker.x, attacker.y]) <= gamelib.GameUnit(SCOUT, game_state.config).attackRange):
                             blacklisted_attackers[tuple([attacker.x, attacker.y])] = attacker.health - num_scouts *  gamelib.GameUnit(SCOUT, game_state.config).damage_f
                         scout_health -= attacker.damage_i
                         num_scouts = (int)(1+ scout_health / (gamelib.GameUnit(SCOUT, game_state.config).health))
