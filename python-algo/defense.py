@@ -65,7 +65,7 @@ class Defense(gamelib.AlgoCore):
                                                   out=np.zeros_like(upgraded_turret_costs, dtype=float),
                                                   where=upgraded_turret_counts != 0)
 
-                curr_turret_cost_ratios = np.full((arena_size, half_arena), np.inf)
+                curr_turret_cost_ratios = np.full((arena_size, half_arena), 100000000)
                 curr_turret_points = np.zeros((arena_size, half_arena))
                 for y in range(half_arena):
                     for x in range(arena_size):
@@ -127,6 +127,7 @@ class Defense(gamelib.AlgoCore):
                 gamelib.debug_write('ratios')
                 gamelib.debug_write(np.max(upgraded_turret_cost_ratios))
                 gamelib.debug_write(np.max(new_turret_cost_ratios))
+                gamelib.debug_write(curr_turret_cost_ratios)
                 gamelib.debug_write(np.min(curr_turret_cost_ratios))
                 upgraded_max_turret_pos = np.array(np.unravel_index(np.argmax(upgraded_turret_cost_ratios),
                                                                     upgraded_turret_cost_ratios.shape)).reshape(1,
