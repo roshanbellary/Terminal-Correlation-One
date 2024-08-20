@@ -137,7 +137,7 @@ class Defense(gamelib.AlgoCore):
                                     if y > half_arena / 2:
                                         new_turret_cost_ratios[x][y] *= 2
                                     # new_turret_cost_ratios[x][y] = new_turret_cost_ratios[x][y] * y * np.abs(half_arena - x) / 169
-                                    new_turret_cost_ratios[x][y] *= y / 13
+                                    # new_turret_cost_ratios[x][y] *= (y / 13)
                     except Exception as e:
                         gamelib.debug_write(f"Error calculating new turret cost ratios: {e}")
 
@@ -163,7 +163,7 @@ class Defense(gamelib.AlgoCore):
                                             upgraded_turret_cost_ratios[x][y] *= 2
                                         # upgraded_turret_cost_ratios[x][y] = upgraded_turret_cost_ratios[x][y] * y * np.abs(
                                         #     half_arena - x) / 169
-                                        upgraded_turret_cost_ratios[x][y] *= y / 13
+                                        # upgraded_turret_cost_ratios[x][y] *= (y / 13)
                     except Exception as e:
                         gamelib.debug_write(f"Error calculating upgraded turret cost ratios: {e}")
 
@@ -183,28 +183,27 @@ class Defense(gamelib.AlgoCore):
                 # curr_max_turret_pos = np.array(
                 #     np.unravel_index(np.argmin(curr_turret_cost_ratios), curr_turret_cost_ratios.shape)).reshape(1,
                 #                                                                                                  -1).tolist()
-                if np.max(upgraded_turret_cost_ratios) > 5 and (
-                        not self.curr_game_state.contains_stationary_unit(upgraded_max_turret_pos[0]) or not
-                self.curr_game_state.game_map[upgraded_max_turret_pos[0]][
-                    0].upgraded):
+                if np.max(upgraded_turret_cost_ratios) > 1 and self.can_spawn_upgraded_turret(
+                        upgraded_max_turret_pos[0], TURRET, UPGRADE_TURRET_COST, SP):
                     gamelib.debug_write('upgrade')
                     gamelib.debug_write(upgraded_max_turret_pos)
-                    if not (game_state.attempt_spawn(TURRET, upgraded_max_turret_pos) and
-                            game_state.attempt_upgrade(upgraded_max_turret_pos)):
-                        gamelib.debug_write(self.curr_game_state.get_resource(0))
-                        gamelib.debug_write(self.curr_game_state.get_resource(SP))
-                        gamelib.debug_write('could not spawn/upgrade')
-                        return
-                    self.curr_game_state.game_map.add_unit(TURRET, upgraded_max_turret_pos[0])
-                    self.curr_game_state.game_map[upgraded_max_turret_pos[0]][0].upgrade()
-                    # self.curr_SP -= upgraded_turret_points[upgraded_max_turret_pos[0][0]][upgraded_max_turret_pos[0][1]]
-                elif np.max(new_turret_cost_ratios) > 5 and self.curr_game_state.can_spawn(TURRET,
-                                                                                             new_max_turret_pos[0]):
+                    gamelib.debug_write(game_state.get_resource(SP))
+                    game_state.attempt_spawn(TURRET, upgraded_max_turret_pos)
+                    game_state.attempt_upgrade(upgraded_max_turret_pos)
+                    self.curr_game_state.attempt_spawn(TURRET, upgraded_max_turret_pos)
+                    self.curr_game_state.attempt_upgrade(upgraded_max_turret_pos)
+                    # self.curr_game_state.game_map.add_unit(TURRET, upgraded_max_turret_pos[0])
+                    # self.curr_game_state.game_map[upgraded_max_turret_pos[0]][0].upgrade()
+                    self.curr_game_state.submit_turn()
+                    gamelib.debug_write(game_state.get_resource(SP))
+                elif np.max(new_turret_cost_ratios) > 1 and self.curr_game_state.can_spawn(TURRET,
+                                                                                           new_max_turret_pos[0]):
                     gamelib.debug_write('add new')
                     gamelib.debug_write(new_max_turret_pos)
                     game_state.attempt_spawn(TURRET, new_max_turret_pos)
-                    self.curr_game_state.game_map.add_unit(TURRET, new_max_turret_pos[0])
-                    # self.curr_SP -= self.curr_game_state.type_cost(TURRET)
+                    self.curr_game_state.attempt_spawn(TURRET, new_max_turret_pos)
+                    # self.curr_game_state.game_map.add_unit(TURRET, new_max_turret_pos[0])
+                    self.curr_game_state.submit_turn()
                 # elif np.min(curr_turret_cost_ratios) < 0.01:
                 #     gamelib.debug_write('remove')
                 #     gamelib.debug_write(curr_max_turret_pos)
@@ -216,6 +215,12 @@ class Defense(gamelib.AlgoCore):
                     return
             else:
                 return
+
+    def can_spawn_upgraded_turret(self, loc, TURRET, UPGRADE_TURRET_COST, SP):
+        can_spawn = self.curr_game_state.can_spawn(TURRET, loc)
+        can_upgrade = self.curr_game_state.contains_stationary_unit(loc) and (not self.curr_game_state.game_map[loc][0].upgraded and \
+                      self.curr_game_state.get_resource(SP) > UPGRADE_TURRET_COST)
+        return can_spawn or can_upgrade
 
     def calc_path_damages(self):
         enemy_edges = self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_LEFT) + \

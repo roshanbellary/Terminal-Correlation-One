@@ -335,7 +335,7 @@ class GameState:
         correct_territory = location[1] < self.HALF_ARENA
         on_edge = location in (self.game_map.get_edge_locations(self.game_map.BOTTOM_LEFT) + self.game_map.get_edge_locations(self.game_map.BOTTOM_RIGHT))
 
-        if self.enable_warnings:
+        if True:
             fail_reason = ""
             if not affordable:
                 fail_reason = fail_reason + " Not enough resources."
@@ -347,6 +347,7 @@ class GameState:
                 fail_reason = fail_reason + " Information units must be deployed on the edge."
             if len(fail_reason) > 0:
                 self.warn("Could not spawn {} at location {}.{}".format(unit_type, location, fail_reason))
+            # debug_write(fail_reason)
 
         return (affordable and correct_territory and not blocked and
                 (stationary or on_edge) and
