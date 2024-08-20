@@ -17,9 +17,12 @@ def calc_point_costs(game_state, path_costs):
         if path is not None:
             for i in path:
                 if i[1] < game_state.game_map.HALF_ARENA:
-                    point_costs[i] += path_costs[loc]
-                    path_counts[i] += 1
-    return point_costs / path_counts, path_counts
+                    point_costs[i[0]][i[1]] += path_costs[loc]
+                    path_counts[i[0]][i[1]] += 1
+    point_costs = np.divide(point_costs, path_counts, out=np.zeros_like(point_costs, dtype=float),
+                            where=path_counts != 0)
+
+    return point_costs, path_counts
 
 
 class Defense(gamelib.AlgoCore):
@@ -48,7 +51,8 @@ class Defense(gamelib.AlgoCore):
                                 turret_counts[x][y] += 1
                 # turret_costs = turret_costs / turret_counts
                 print(turret_costs)
-                turret_costs = np.divide(turret_costs, turret_counts, out=np.zeros_like(turret_costs, dtype=float), where=turret_counts != 0)
+                turret_costs = np.divide(turret_costs, turret_counts, out=np.zeros_like(turret_costs, dtype=float),
+                                         where=turret_counts != 0)
 
                 upgraded_turret_costs = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
                 upgraded_turret_counts = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
@@ -60,7 +64,9 @@ class Defense(gamelib.AlgoCore):
                             for loc in circle:
                                 upgraded_turret_costs[x][y] += point_costs[loc[0]][loc[1]]
                                 upgraded_turret_counts[x][y] += 1
-                upgraded_turret_costs = upgraded_turret_costs / upgraded_turret_counts
+                upgraded_turret_costs = np.divide(upgraded_turret_costs, upgraded_turret_counts,
+                                                  out=np.zeros_like(upgraded_turret_costs, dtype=float),
+                                                  where=upgraded_turret_counts != 0)
 
                 curr_turret_cost_ratios = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
                 for y in range(game_state.game_map.HALF_ARENA):
@@ -73,15 +79,18 @@ class Defense(gamelib.AlgoCore):
                                         damage_chg = turret_hits[x][y] / upgraded_turret_costs[x][y]
                                     point_chg = 0.75 * gamelib.GameUnit(unit.unit_type, game_state.config).health / \
                                                 gamelib.GameUnit(unit.unit_type, game_state.config).max_health * \
-                                                gamelib.GameUnit(unit.unit_type, game_state.config).cost / game_state.get_resource(0)
+                                                gamelib.GameUnit(unit.unit_type,
+                                                                 game_state.config).cost / game_state.get_resource(0)
                                     curr_turret_cost_ratios[x][y] = damage_chg / point_chg
 
                 new_turret_cost_ratios = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
                 for y in range(game_state.game_map.HALF_ARENA):
                     for x in range(game_state.game_map.ARENA_SIZE):
-                        new_turret_cost_ratios[x][y] = (gamelib.GameUnit(TURRET, game_state.config).damage_i /
-                                                        turret_costs[x][y]) \
-                                                       / (game_state.type_cost(TURRET)[0] / game_state.get_resource(0))
+                        if turret_costs[x][y] != 0:
+                            new_turret_cost_ratios[x][y] = (gamelib.GameUnit(TURRET, game_state.config).damage_i /
+                                                            turret_costs[x][y]) \
+                                                           / (game_state.type_cost(TURRET)[0] / game_state.get_resource(
+                                0))
 
                 upgraded_turret_cost_ratios = np.empty((game_state.game_map.ARENA_SIZE, game_state.game_map.HALF_ARENA))
                 for y in range(game_state.game_map.HALF_ARENA):
@@ -92,7 +101,8 @@ class Defense(gamelib.AlgoCore):
                                 if unit.damage_i + unit.damage_f > 0 and unit.player_index == 1:
                                     cost -= game_state.type_cost(TURRET)
                             # Change to upgraded turret damage
-                            upgraded_turret_cost_ratios[x][y] = (14 / upgraded_turret_costs[x][y]) / (cost / game_state.get_resource(0))
+                            upgraded_turret_cost_ratios[x][y] = (14 / upgraded_turret_costs[x][y]) / (
+                                        cost / game_state.get_resource(0))
 
                 if np.min(upgraded_turret_costs) > 1:
                     pos = np.unravel_index(np.argmin(upgraded_turret_cost_ratios), upgraded_turret_cost_ratios.shape)
@@ -121,12 +131,11 @@ class Defense(gamelib.AlgoCore):
             if path is not None:
                 for path_location in path:
                     attackers = game_state.get_attackers(path_location, 0)
-                    for i in attackers:
-                        for unit in game_state.game_map[i[0]][i[1]]:
-                            # Does this account for whether the turret is upgraded?
-                            path_costs[-1] += gamelib.GameUnit(unit.unit_type, game_state.config).damage_i * \
-                                              gamelib.GameUnit(unit.unit_type, game_state.config).health / \
-                                              gamelib.GameUnit(unit.unit_type, game_state.config).max_health
-                            turret_hits[i] += gamelib.GameUnit(unit.unit_type, game_state.config).damage_i
+                    for unit in attackers:
+                        # Does this account for whether the turret is upgraded?
+                        path_costs[-1] += gamelib.GameUnit(unit.unit_type, game_state.config).damage_i * \
+                                          gamelib.GameUnit(unit.unit_type, game_state.config).health / \
+                                          gamelib.GameUnit(unit.unit_type, game_state.config).max_health
+                        turret_hits[unit.x][unit.y] += gamelib.GameUnit(unit.unit_type, game_state.config).damage_i
 
         return path_costs, turret_hits
