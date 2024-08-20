@@ -7,9 +7,56 @@ from sys import maxsize
 import json
 import heapq
 import gamelib.navigation
+class ResourcePredictor:
+    def __init__(self, window_size=5, num_std_dev=2, threshold=-10):
+        self.resource_changes = []
+        self.window_size = window_size  # Moving average window size for Bollinger Bands
+        self.num_std_dev = num_std_dev  # Number of standard deviations for Bollinger Bands
+        self.threshold = threshold  # Threshold for predicting large negative changes
 
+    def calculate_bollinger_bands(self):
+        if len(self.resource_changes) < self.window_size:
+            return None, None  # Not enough data to calculate Bollinger Bands
+        
+        # Calculate moving average and standard deviation over the window
+        moving_avg = np.mean(self.resource_changes[-self.window_size:])
+        std_dev = np.std(self.resource_changes[-self.window_size:])
+        
+        # Calculate the upper and lower Bollinger Bands
+        upper_band = moving_avg + (self.num_std_dev * std_dev)
+        lower_band = moving_avg - (self.num_std_dev * std_dev)
+        
+        return upper_band, lower_band
+
+    def predict_large_negative_change(self):
+        if len(self.resource_changes) < self.window_size:
+            return False  # Not enough data to predict
+        
+        # Get the Bollinger Bands
+        upper_band, lower_band = self.calculate_bollinger_bands()
+        
+        if upper_band is None or lower_band is None:
+            return False  # Not enough data for prediction
+        
+        # Check if the latest resource change is significantly below the lower band
+        if self.resource_changes[-1] < lower_band and self.resource_changes[-1] < self.threshold:
+            return True  # Predict a large negative change
+        
+        return False
+
+    def add_resource_change(self, game_state):
+        new_change = game_state.get_resource(SP, 1)
+        self.resource_changes.append(new_change)
+
+        max_history = 100
+        if len(self.resource_changes) > max_history:
+            self.resource_changes.pop(0)
+
+        # Call the prediction function
+        return self.predict_large_negative_change()
 class Offense(gamelib.AlgoCore):
     MP_Limiter = 12
+    resource_changes = []
     def __init__(self, algo_strategy):
         self.algo_strategy = algo_strategy
     def is_point_in_rectangle(self, point, rect_points):
@@ -166,6 +213,7 @@ class Offense(gamelib.AlgoCore):
         """
         Find the least damage cost sectors and send troops to attack there
         """
+        self.resource_changes.append(game_state.get_resource(SP, 1))
         friendly_edges = game_state.game_map.get_edge_locations(
             game_state.game_map.BOTTOM_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT)
         friendly_edges = [loc for loc in friendly_edges if not game_state.contains_stationary_unit(loc) ]
