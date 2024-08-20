@@ -71,7 +71,7 @@ class Offense(gamelib.AlgoCore):
         # Calculate the damage in each sector
         for sector, points in sector_points.items():
             for point in points:
-                for attacker in game_state.get_attackers(point, 1):
+                for attacker in game_state.get_attackers(point, 0):
                  sector_damage_totals[sector] += attacker.damage_i *(attacker.health)/attacker.max_health
                 sector_point_counts[sector] += 1
 
@@ -106,8 +106,9 @@ class Offense(gamelib.AlgoCore):
         return sector_dict
     def calculate_damage(self, game_state, point):
         damage = 0
-        for attacker in game_state.get_attackers(point, 1):
-            damage += attacker.damage_i
+        for attacker in game_state.get_attackers(point, 0):
+            attacker.health
+            damage += attacker.damage_i*(attacker.health)/(attacker.max_health)
         return damage
     def find_optimized_path(self, game_state, point):
         path = game_state.find_path_to_edge(point)
@@ -137,10 +138,11 @@ class Offense(gamelib.AlgoCore):
         return path
     """
         -Attacks should consider low health in case of desparation need to send all MP to send out scouts
+            -Do when health < 3
         -Save MP while minimum damage path would still wipe out all scouts
-            -Probably should only launch attacks when they can definitively take out 3 points or more from opponent health until we are desparate
+            -Probably should only launch attacks when they can definitively take out 3 points or more from opponent health until we are desperate
         -When launching attack
-            -If opponent has high MP then launch attack on second least 
+            -If opponent has high SP then launch attack on second least well-defended sector to be careful of 
     """
     def attack_via_straights(self, game_state, SCOUT, MP):
         if game_state.get_resource(MP) > self.MP_Limiter:
@@ -160,22 +162,58 @@ class Offense(gamelib.AlgoCore):
             # Attempt to spawn SCOUT units at minimum damage location
             spawn_location = friendly_edges[damages.index(min(damages))]
             game_state.attempt_spawn(SCOUT, spawn_location, num_scouts)
-    def send_the_cavalry(self, game_state, SCOUT, MP):
+    def send_the_cavalry(self, game_state, SCOUT, MP, SP):
         """
         Find the least damage cost sectors and send troops to attack there
         """
-        #the below code is based off sector method
-        if game_state.get_resource(MP) > self.MP_Limiter:
+        friendly_edges = game_state.game_map.get_edge_locations(
+            game_state.game_map.BOTTOM_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT)
+        friendly_edges = [loc for loc in friendly_edges if not game_state.contains_stationary_unit(loc) ]
+        damages = []
+        for loc in friendly_edges:
+            path = self.find_optimized_path(game_state, loc)
+            damage = 0
+            for path_location in path:
+                # Get number of enemy turrets that can attack each location and multiply by turret damage
+                damage += self.calculate_damage(game_state, path_location)
+            damages.append(damage)
+        
+        num_scouts = game_state.number_affordable(SCOUT)
+        scout_health = num_scouts *  gamelib.GameUnit(SCOUT, game_state.config).max_health
+        spawn_location = friendly_edges[damages.index(min(damages))]
+        blacklisted_attackers = {}
+        for loc in self.find_optimized_path(game_state, spawn_location):
+            if (num_scouts == 0):
+                break
+            used = False
+            for attacker in game_state.get_attackers(loc, 0):
+                if (not used):
+                    if ([attacker.x, attacker.y] not in blacklisted_attackers):
+                        if (gamelib.GameMap.distance_between_locations(loc, [attacker.x, attacker.y]) <= gamelib.GameUnit(SCOUT, game_state.config).attackRange):
+                            blacklisted_attackers[[attacker.x, attacker.y]] = attacker.health - num_scouts *  gamelib.GameUnit(SCOUT, game_state.config).damage_f
+                    elif blacklisted_attackers[[attacker.x, attacker.y]] < 0:
+                        continue
+                    else:
+                        if (gamelib.GameMap.distance_between_locations(loc, [attacker.x, attacker.y]) <= gamelib.GameUnit(SCOUT, game_state.config).attackRange):
+                            blacklisted_attackers[[attacker.x, attacker.y]] = attacker.health - num_scouts *  gamelib.GameUnit(SCOUT, game_state.config).damage_f
+                        scout_health -= attacker.damage_i
+                        num_scouts = scout_health / (gamelib.GameUnit(SCOUT, game_state.config).health)
+        if (game_state.my_health < 3 and num_scouts > 0):
+            game_state.attempt_spawn(SCOUT, spawn_location, 1000)
+            return
+        # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 20%
+        # checks if we are not at MP limit for it to not grow enough in the future
+        if (num_scouts < 0.3 * game_state.enemy_health and game_state.project_future_MP(turns_in_future=1) > game_state.get_resource(MP)):
+            return
+        elif game_state.get_resource(SP, 1) > 20:
+            # checks if opponent has enough SP to possibly mess with our path game and if so then we do sector based attacsk
             avg_damage_dict = self.calculate_sector_average_damage(game_state)
             min_damage_sector = min(avg_damage_dict, key=avg_damage_dict.get)
             sector_edge_dict = self.find_opposing_friendly_edges(game_state)
             friendly_edge_set = sector_edge_dict[min_damage_sector]
-            unit_numbers = game_state.get_resource(MP) 
             available_locations = [loc for loc in friendly_edge_set if not game_state.contains_stationary_unit(loc)]
             if not available_locations:
                 return
-            # Get the cost of a SCOUT in MP
-            scout_cost = game_state.type_cost(SCOUT)[MP]
             damages = []
             # Get the damage estimate each path will take
             for location in available_locations:
@@ -186,39 +224,12 @@ class Offense(gamelib.AlgoCore):
                     damage += self.calculate_damage(game_state, path_location)
                 damages.append(damage)
             # Calculate the number of SCOUT units we can afford
-            num_scouts = (int)(unit_numbers / scout_cost)
+            num_scouts = game_state.number_affordable(SCOUT)
             # Attempt to spawn SCOUT units at minimum damage location
             spawn_location = available_locations[damages.index(min(damages))]
             game_state.attempt_spawn(SCOUT, spawn_location, num_scouts)
-    
-
-    def interfere_with_interceptors(self, game_state, INTERCEPTOR):
-        """
-        Send out interceptors at random locations to defend our base from enemy moving units.
-        """
-        # We can spawn moving units on our edges so a list of all our edge locations
-        friendly_edges = game_state.game_map.get_edge_locations(
-            game_state.game_map.BOTTOM_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT)
-
-        # Remove locations that are blocked by our own structures 
-        # since we can't deploy units there.
-        deploy_locations = self.filter_blocked_locations(friendly_edges, game_state)
-        scored_locations = self.scored_on_locations
-        defense_locations = [loc for loc in deploy_locations if loc in scored_locations]
-        if not defense_locations:
-            defense_locations = deploy_locations
-        
-
-        # While we have remaining MP to spend lets send out interceptors randomly.
-        while game_state.get_resource(MP) >= game_state.type_cost(INTERCEPTOR)[MP] and len(deploy_locations) > 0:
-            # Choose a random deploy location.
-            deploy_index = random.randint(0, len(deploy_locations) - 1)
-            deploy_location = deploy_locations[deploy_index]
-
-            game_state.attempt_spawn(INTERCEPTOR, deploy_location)
-            """
-            We don't have to remove the location since multiple mobile 
-            units can occupy the same space.
-            """
+        else: # if opponent cannot possibly place that many turrets then we send units down least damaged path
+            spawn_location = friendly_edges[damages.index(min(damages))]
+            game_state.attempt_spawn(SCOUT, spawn_location, 1000)
 
     
