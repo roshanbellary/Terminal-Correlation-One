@@ -18,12 +18,6 @@ class Offense(gamelib.AlgoCore):
     SP = 0
     def __init__(self, algo_strategy):
         self.algo_strategy = algo_strategy
-    def calculate_damage(self, game_state, point):
-        damage = 0
-        for attacker in game_state.get_attackers(point, 1):
-            attacker.health
-            damage += attacker.damage_i*(attacker.health)/(attacker.max_health)
-        return damage
     def go_to_target_edge(self, game_map, loc, target_edge):
         # gamelib.debug_write(loc)
         before_path = [loc.copy()]

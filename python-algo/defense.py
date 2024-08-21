@@ -10,14 +10,13 @@ import time
 
 
 def go_to_target_edge(game_map, loc, target_edge):
-    before_path = [loc.copy()]
     new_path = [loc.copy()]
     direction = []
-    if target_edge == game_map.TOP_LEFT:
-        direction = [[0, 1], [-1, 0]] # Move up, then left
+    if target_edge == game_map.BOTTOM_LEFT:
+        direction = [[0, -1], [-1, 0]] # Move up, then left
         direction_set = 0
     else:
-        direction = [[0, 1], [1, 0]] # Move up, then right
+        direction = [[0, -1], [1, 0]] # Move up, then right
         direction_set = 1
     while loc not in game_map.get_edge_locations(target_edge):
         # Update location by adding the current direction
