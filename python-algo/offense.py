@@ -134,7 +134,8 @@ class Offense(gamelib.AlgoCore):
                 game_state.attempt_remove([location[0]-1, location[1]-1])
         self.attacked.append(True)
         if val != False:
-            return game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT,game_state.config).cost[self.SP]
+            gamelib.debug_write(f"SP cost:{game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT,game_state.config).cost[0]} ")
+            return game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT,game_state.config).cost[0]
         else:
             return game_state.get_resource(self.SP) 
     def send_the_cavalry(self, game_state, SCOUT, SUPPORT, MP, SP):
