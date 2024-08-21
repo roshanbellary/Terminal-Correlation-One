@@ -34,7 +34,7 @@ class Defense(gamelib.AlgoCore):
         self.curr_game_state.game_map.remove_unit([11, 16])
 
         while True:
-            if self.curr_SP > 0 and time.time() - start_time < 5 - elapsed_time:
+            if self.curr_SP > 0 and time.time() - start_time < 5.8 - elapsed_time:
                 gamelib.debug_write('again')
                 path_costs, turret_hits, cost_ratio_multipliers = self.calc_path_damages(scored_on_locations)
 
@@ -172,13 +172,14 @@ class Defense(gamelib.AlgoCore):
                     wall_cost_ratios = np.zeros((arena_size, half_arena))
                     for y in range(half_arena - 1):
                         for x in range(arena_size):
-                            if turret_hits[x][y] != 0:
+                            if turret_hits[x][y] != 0 and y > 10:
                                 if self.can_spawn_wall(WALL, [x, y + 1], SP):
-                                    wall_cost_ratios[x][y + 1] = np.abs(half_arena - np.abs(half_arena - x)) / half_arena * \
-                                                                 y / half_arena * \
+                                    wall_cost_ratios[x][y + 1] = pow(np.abs(half_arena - np.abs(half_arena - x)) / half_arena, 2) * \
+                                                                 pow(y / half_arena, 2) * \
                                                                  gamelib.GameUnit(WALL,
-                                                                                  self.curr_game_state.config).max_health * gamelib.GameUnit(WALL,
-                                                                                  self.curr_game_state.config).max_health / turret_hits[x][y] / (
+                                                                                  self.curr_game_state.config).max_health * \
+                                                                 self.curr_game_state.game_map[x][y][0].health / \
+                                                                 self.curr_game_state.game_map[x][y].max_health / (
                                                                          4 / self.curr_SP)
 
                 except Exception as e:
