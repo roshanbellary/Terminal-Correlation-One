@@ -238,12 +238,12 @@ class Offense(gamelib.AlgoCore):
                     count += 1
             return count
         
-        if (num_scouts < max(game_state.enemy_health*0.3, MP_THRESHOLD) and find_length_of_forgone(self.attacked) < 5):
+        if (num_scouts < max(game_state.enemy_health*0.3,self.MP_THRESHOLD) and find_length_of_forgone(self.attacked) < 5):
             gamelib.debug_write(f"num_scouts: {num_scouts}, enemy_health: {game_state.enemy_health},  forgone: {find_length_of_forgone(self.attacked)}")
             self.attacked.append(False)
         elif (len(self.enemy_health) > 2 and True in self.attacked):
             def find_latest_true(arr):
-                for i in range(len(arr) - 1, -1, -1):
+                for i in range(len(arr) - 1, 0, -1):
                     if arr[i]:
                         return i
                 return None
@@ -257,19 +257,23 @@ class Offense(gamelib.AlgoCore):
                 # game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
                 # self.attacked.append(True)
                 #checks if attack was unsuccessful
-                avg_damage_dict = self.calculate_sector_average_damage(game_state)
-                min_damage_sector = min(avg_damage_dict, key=avg_damage_dict.get)
-                avg_damage_dict = {k: v for k, v in avg_damage_dict.items() if k != min_damage_sector}
-                min_damage_sector = min(avg_damage_dict, key=avg_damage_dict.get)
+                # avg_damage_dict = self.calculate_sector_average_damage(game_state)
+                # min_damage_sector = min(avg_damage_dict, key=avg_damage_dict.get)
+                # avg_damage_dict = {k: v for k, v in avg_damage_dict.items() if k != min_damage_sector}
+                # min_damage_sector = min(avg_damage_dict, key=avg_damage_dict.get)
                 
-                sector_edge_dict = self.find_opposing_friendly_edges(game_state)
-                friendly_edge_set = sector_edge_dict[min_damage_sector]
-                available_locations = [loc for loc in friendly_edge_set if not game_state.contains_stationary_unit(loc)]
-                if not available_locations:
-                    return
-                damages = [self.simulate_an_attack(game_state, SCOUT, MP, loc) for loc in available_locations]
-                # Attempt to spawn SCOUT units at location with most surviving scouts
-                spawn_location = available_locations[damages.index(max(damages))]
+                # sector_edge_dict = self.find_opposing_friendly_edges(game_state)
+                # friendly_edge_set = sector_edge_dict[min_damage_sector]
+                # available_locations = [loc for loc in friendly_edge_set if not game_state.contains_stationary_unit(loc)]
+                # if not available_locations:
+                #     return
+                # damages = [self.simulate_an_attack(game_state, SCOUT, MP, loc) for loc in available_locations]
+                # # Attempt to spawn SCOUT units at location with most surviving scouts
+                # spawn_location = available_locations[damages.index(max(damages))]
+                # gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
+                # game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
+                # self.attacked.append(True)
+                spawn_location = friendly_edges[damages.index(max(damages))]
                 gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
                 game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
                 self.attacked.append(True)
