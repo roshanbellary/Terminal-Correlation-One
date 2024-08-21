@@ -195,5 +195,5 @@ class Offense(gamelib.AlgoCore):
             spawn_location = friendly_edges[damages.index(max(damages))]
             gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
             return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
-
+        return game_state.get_resource(self.SP) 
     
