@@ -130,10 +130,10 @@ class Defense(gamelib.AlgoCore):
                                                                             turret_costs[x][y]) / \
                                                                            (self.curr_game_state.type_cost(TURRET)[
                                                                                 SP] / self.curr_SP)
-                                            if y > half_arena / 2:
-                                                new_turret_cost_ratios[x][y] *= 2
+                                            # if y > half_arena / 2:
+                                            #     new_turret_cost_ratios[x][y] *= 2
                                             # new_turret_cost_ratios[x][y] = new_turret_cost_ratios[x][y] * y * np.abs(half_arena - x) / 169
-                                            # new_turret_cost_ratios[x][y] *= (y / 13)
+                                            new_turret_cost_ratios[x][y] *= (y / 13)
                                     else:
                                         new_turret_cost_ratios[x][y] = 100000000
                     except Exception as e:
@@ -158,11 +158,11 @@ class Defense(gamelib.AlgoCore):
                                                                                  upgraded_turret_costs[x][y]) / \
                                                                                 (cost / self.curr_SP)
                                             upgraded_turret_points[x][y] = cost
-                                            if y > half_arena / 2:
-                                                upgraded_turret_cost_ratios[x][y] *= 2
+                                            # if y > half_arena / 2:
+                                            #     upgraded_turret_cost_ratios[x][y] *= 2
                                             # upgraded_turret_cost_ratios[x][y] = upgraded_turret_cost_ratios[x][y] * y * np.abs(
                                             #     half_arena - x) / 169
-                                            # upgraded_turret_cost_ratios[x][y] *= (y / 13)
+                                            upgraded_turret_cost_ratios[x][y] *= (y / 13)
                                     else:
                                         upgraded_turret_cost_ratios[x][y] = 100000000
                     except Exception as e:
