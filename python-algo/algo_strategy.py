@@ -4,6 +4,7 @@ import math
 import warnings
 from sys import maxsize
 import json
+import time
 from defense import Defense
 from offense import Offense
 """
@@ -55,6 +56,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         unit deployments, and transmitting your intended deployments to the
         game engine.
         """
+        start_time = time.time()
         game_state = gamelib.GameState(self.config, turn_state)
         gamelib.debug_write('Performing turn {} of your custom algo strategy'.format(game_state.turn_number))
         game_state.suppress_warnings(True)  # Comment or remove this line to enable warnings.
@@ -65,8 +67,10 @@ class AlgoStrategy(gamelib.AlgoCore):
             game_state.attempt_upgrade(init_turret_locations)
 
         self.starter_strategy(game_state)
-
         game_state.submit_turn()
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        gamelib.debug_write(f"Time taken to execute both methods: {elapsed_time:.6f} seconds")
 
     """
     NOTE: All the methods after this point are part of the sample starter-algo
