@@ -15,7 +15,7 @@ class Defense(gamelib.AlgoCore):
         self.curr_game_state = None
         self.curr_SP = None
 
-    def turret_opt(self, game_state, curr_sp, scored_on_locations, TURRET, WALL, SP):
+    def turret_opt(self, game_state, curr_sp, scored_on_locations, elapsed_time, TURRET, WALL, SP):
         start_time = time.time()
         self.curr_game_state = game_state
         # self.curr_game_state = copy.deepcopy(game_state)
@@ -34,7 +34,7 @@ class Defense(gamelib.AlgoCore):
         self.curr_game_state.game_map.remove_unit([11, 16])
 
         while True:
-            if self.curr_SP > 0 and time.time() - start_time < 3:
+            if self.curr_SP > 0 and time.time() - start_time < 5 - elapsed_time:
                 gamelib.debug_write('again')
                 path_costs, turret_hits, cost_ratio_multipliers = self.calc_path_damages(scored_on_locations)
 
@@ -291,10 +291,10 @@ class Defense(gamelib.AlgoCore):
         multipliers = np.full((self.curr_game_state.game_map.ARENA_SIZE, self.curr_game_state.game_map.HALF_ARENA), 1)
         for x in range(self.curr_game_state.game_map.ARENA_SIZE):
             for y in range(self.curr_game_state.game_map.HALF_ARENA):
-                # if y > half_arena / 2:
-                #     upgraded_turret_cost_ratios[x][y] *= 2
+                if y > self.curr_game_state.game_map.HALF_ARENA / 2:
+                    multipliers[x][y] *= 10
                 # multipliers[x][y] += y * np.abs(self.curr_game_state.game_map.HALF_ARENA - x)
-                multipliers[x][y] *= y
+                # multipliers[x][y] *= y
 
         enemy_edges = self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_LEFT) + \
                       self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_RIGHT)
@@ -311,7 +311,7 @@ class Defense(gamelib.AlgoCore):
                     mult = pow(10 * np.sum(np.all(np.array(scored_locations) == path[-1], axis=1)), 2)
                 for path_location in path:
                     for unit in self.curr_game_state.get_attackers(path_location, 0):
-                        loc_cost = unit.damage_i * unit.health / unit.max_health
+                        loc_cost = unit.damage_i * pow(unit.health / unit.max_health, 2)
                         cost += loc_cost
                         turret_hits[unit.x][unit.y] += unit.damage_i
                         if len(scored_locations) > 0 and path_location[1] < self.curr_game_state.game_map.HALF_ARENA:
