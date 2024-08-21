@@ -161,15 +161,21 @@ class Offense(gamelib.AlgoCore):
                     unit =  game_state.contains_stationary_unit(loc)
                     if unit.player_index == 1 and [unit.x, unit.y] not in destroyed_attackers:
                         get_affected_enemy_units.append(game_state.contains_stationary_unit(loc))
-            # Apply prioritization schema:
-            # 4. Closest to an edge (smallest x-value or furthest x-value)
-            get_affected_enemy_units.sort(key=lambda t: min(t.x, game_state.game_map.ARENA_SIZE - t.x))
-            # 3. Furthest into/towards your side of the arena (higher y-value means closer to your side)
-            get_affected_enemy_units.sort(key=lambda t: t.y, reverse=True)
-            # 2. Lowest remaining health
-            get_affected_enemy_units.sort(key=lambda t: t.health)
-            # 1. Nearest target
-            get_affected_enemy_units.sort(key=lambda t: game_state.game_map.distance_between_locations(loc, [t.x, t.y]))
+            def sort_enemy_units(game_state, get_affected_enemy_units, current_position):
+                # Define a sorting key function
+                def sort_key(unit):
+                    distance_to_current = game_state.game_map.distance_between_locations(
+                        [unit.x, unit.y], current_position)
+                    distance_to_edge = min(unit.x, game_state.game_map.ARENA_SIZE - unit.x)
+                    return (distance_to_current, 
+                            unit.health, 
+                            -unit.y,  # Negative for descending order (highest y-value first)
+                            distance_to_edge)
+                
+                # Sort the list using the key function
+                get_affected_enemy_units.sort(key=sort_key)
+                return get_affected_enemy_units
+            get_affected_enemy_units = sort_enemy_units(game_state, get_affected_enemy_units, loc)
             scout_damage = num_scouts * gamelib.GameUnit(SCOUT, game_state.config).damage_f
             num_scouts = round(scout_health / gamelib.GameUnit(SCOUT, game_state.config).health)
             for unit in get_affected_enemy_units:
@@ -232,17 +238,24 @@ class Offense(gamelib.AlgoCore):
             damages.append(scouts_remaining)
         spawn_location = friendly_edges[damages.index(max(damages))]
         num_scouts = max(damages)
-        gamelib.debug_write(f"Number of Scouts that survive this turn: {num_scouts}. Mobile Points: {game_state.get_resource(MP)}")
-        if (game_state.my_health < 3 and num_scouts > 2):
-            game_state.attempt_spawn(SCOUT, spawn_location, 1000)
+        gamelib.debug_write(f" Mobile Points: {game_state.get_resource(MP)}")
+        if (game_state.my_health < 3):
+            game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
             self.attacked.append(True)
             return
         # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 30%
         # checks if we are not at MP limit for it to not grow enough in the future
         # if we are at MP limit or if we can make a sizeable enough dent then we go for an attack
-        if (num_scouts < 0.4 * game_state.enemy_health and game_state.project_future_MP(turns_in_future=1) > game_state.get_resource(MP)):
+        def find_length_of_forgone(arr):
+            count = 0
+            for i in range(len(arr)-1, 0, -1):
+                if arr[i] == False:
+                    count += 1
+            return count
+        
+        if (num_scouts < game_state.enemy_health*0.2 and find_length_of_forgone(self.attacked) < 5):
+            gamelib.debug_write(f"num_scouts: {num_scouts}, enemy_health: {game_state.enemy_health},  forgone: {find_length_of_forgone(self.attacked)}")
             self.attacked.append(False)
-            return
         elif (len(self.enemy_health) > 2 and True in self.attacked):
             def find_latest_true(arr):
                 for i in range(len(arr) - 1, -1, -1):
@@ -268,18 +281,20 @@ class Offense(gamelib.AlgoCore):
                 # Get the damage estimate each path will take
                 for location in available_locations:
                     damages.append(self.simulate_an_attack(game_state, SCOUT, MP, location))
-                # Calculate the number of SCOUT units we can afford
-                num_scouts = game_state.number_affordable(SCOUT)
                 # Attempt to spawn SCOUT units at minimum damage location
                 spawn_location = available_locations[damages.index(max(damages))]
-                game_state.attempt_spawn(SCOUT, spawn_location, num_scouts)
+                gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
+                game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
+                self.attacked.append(True)
             else: 
-                spawn_location = friendly_edges[damages.index(min(damages))]
-                game_state.attempt_spawn(SCOUT, spawn_location, 1000)
+                spawn_location = friendly_edges[damages.index(max(damages))]
+                gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
+                game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
                 self.attacked.append(True)
         else:
-            spawn_location = friendly_edges[damages.index(min(damages))]
-            game_state.attempt_spawn(SCOUT, spawn_location, 1000)
+            spawn_location = friendly_edges[damages.index(max(damages))]
+            gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
+            game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
             self.attacked.append(True)
 
     
