@@ -12,6 +12,8 @@ class Offense(gamelib.AlgoCore):
     resource_changes = []
     enemy_health = []
     attacked = []
+    MP_THRESHOLD = 6
+    MP_BOOST = 5
     def __init__(self, algo_strategy):
         self.algo_strategy = algo_strategy
     def is_point_in_rectangle(self, point, rect_points):
@@ -197,24 +199,6 @@ class Offense(gamelib.AlgoCore):
                         destroyed_attackers.append([unit.x, unit.y])
                         scout_damage -= round(curr_health/gamelib.GameUnit(SCOUT,game_state.config).damage_f) * gamelib.GameUnit(SCOUT,game_state.config).damage_f
         return num_scouts
-    def attack_via_straights(self, game_state, SCOUT, MP):
-        if game_state.get_resource(MP) > self.MP_Limiter:
-            friendly_edges = game_state.game_map.get_edge_locations(
-            game_state.game_map.BOTTOM_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT)
-            friendly_edges = [loc for loc in friendly_edges if not game_state.contains_stationary_unit(loc) ]
-            damages = []
-            # Get the damage estimate each path will take
-            for location in friendly_edges:
-                path = self.find_optimized_path(game_state, location)
-                damage = 0
-                for path_location in path:
-                    # Get number of enemy turrets that can attack each location and multiply by turret damage
-                    damage += self.calculate_damage(game_state, path_location)
-                damages.append(damage)
-            num_scouts = game_state.number_affordable(SCOUT)
-            # Attempt to spawn SCOUT units at minimum damage location
-            spawn_location = friendly_edges[damages.index(min(damages))]
-            game_state.attempt_spawn(SCOUT, spawn_location, num_scouts)
     """
         -Attacks should consider low health in case of desparation need to send all MP to send out scouts
             -Do when health < 3
@@ -239,6 +223,7 @@ class Offense(gamelib.AlgoCore):
         spawn_location = friendly_edges[damages.index(max(damages))]
         num_scouts = max(damages)
         gamelib.debug_write(f" Mobile Points: {game_state.get_resource(MP)}")
+
         if (game_state.my_health < 3):
             game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
             self.attacked.append(True)
@@ -253,7 +238,7 @@ class Offense(gamelib.AlgoCore):
                     count += 1
             return count
         
-        if (num_scouts < game_state.enemy_health*0.2 and find_length_of_forgone(self.attacked) < 5):
+        if (num_scouts < max(game_state.enemy_health*0.3, MP_THRESHOLD) and find_length_of_forgone(self.attacked) < 5):
             gamelib.debug_write(f"num_scouts: {num_scouts}, enemy_health: {game_state.enemy_health},  forgone: {find_length_of_forgone(self.attacked)}")
             self.attacked.append(False)
         elif (len(self.enemy_health) > 2 and True in self.attacked):
@@ -264,8 +249,13 @@ class Offense(gamelib.AlgoCore):
                 return None
             ind = find_latest_true(self.attacked)
             percent_change = (self.enemy_health[ind] - self.enemy_health[-1])/self.enemy_health[ind]
-
-            if (percent_change < 0.1):
+            if (ind == len(self.attacked)-1) and (percent_change < 0.2):
+                self.MP_THRESHOLD += self.MP_BOOST
+            else:
+                # spawn_location = friendly_edges[damages.index(max(damages))]
+                # gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
+                # game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
+                # self.attacked.append(True)
                 #checks if attack was unsuccessful
                 avg_damage_dict = self.calculate_sector_average_damage(game_state)
                 min_damage_sector = min(avg_damage_dict, key=avg_damage_dict.get)
@@ -277,17 +267,9 @@ class Offense(gamelib.AlgoCore):
                 available_locations = [loc for loc in friendly_edge_set if not game_state.contains_stationary_unit(loc)]
                 if not available_locations:
                     return
-                damages = []
-                # Get the damage estimate each path will take
-                for location in available_locations:
-                    damages.append(self.simulate_an_attack(game_state, SCOUT, MP, location))
-                # Attempt to spawn SCOUT units at minimum damage location
+                damages = [self.simulate_an_attack(game_state, SCOUT, MP, loc) for loc in available_locations]
+                # Attempt to spawn SCOUT units at location with most surviving scouts
                 spawn_location = available_locations[damages.index(max(damages))]
-                gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
-                game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
-                self.attacked.append(True)
-            else: 
-                spawn_location = friendly_edges[damages.index(max(damages))]
                 gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
                 game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
                 self.attacked.append(True)
