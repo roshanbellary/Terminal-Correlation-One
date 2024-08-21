@@ -53,6 +53,7 @@ class Offense(gamelib.AlgoCore):
             for attacker in current_attackers:
                 if [attacker.x, attacker.y] not in destroyed_attackers:
                     scout_health -= attacker.damage_i
+                    
             circle = game_state.game_map.get_locations_in_range([curr_loc[0], curr_loc[1]],gamelib.GameUnit(SCOUT,game_state.config).attackRange)
             get_affected_enemy_units = []
             for loc in circle:
@@ -112,7 +113,25 @@ class Offense(gamelib.AlgoCore):
         -When launching attack
             -If opponent has high SP then launch attack on second least well-defended sector to be careful of 
     """
-    def send_the_cavalry(self, game_state, SCOUT, MP, SP):
+    def send_out_troops(self, game_state, location, SCOUT, SUPPORT):
+        game_state.attempt_spawn(SCOUT, location, game_state.number_affordable(SCOUT))
+        if (location in game_state.game_map.get_edge_locations(
+            game_state.game_map.BOTTOM_LEFT)):
+            if (location != [0, 13]):
+                game_state.attempt_spawn(SUPPORT, [location[0]-1, location[1]+1], 1)
+                game_state.attempt_remove([location[0]-1, location[1]+1])
+            else:
+                game_state.attempt_spawn(SUPPORT, [location[0]+1, location[1]-1], 1)
+                game_state.attempt_remove([location[0]+1, location[1]-1])
+        else:
+            if (location != [27, 13]):
+                game_state.attempt_spawn(SUPPORT, [location[0]+1, location[1]+1], 1)
+                game_state.attempt_remove([location[0]+1, location[1]+1])
+            else:
+                 game_state.attempt_spawn(SUPPORT, [location[0]-1, location[1]-1], 1)
+                 game_state.attempt_remove([location[0]-1, location[1]-1])
+        self.attacked.append(True)
+    def send_the_cavalry(self, game_state, SCOUT, SUPPORT, MP, SP):
         """
         Find the least damage cost sectors and send troops to attack there
         """
@@ -127,8 +146,7 @@ class Offense(gamelib.AlgoCore):
         gamelib.debug_write(f" Mobile Points: {game_state.get_resource(MP)}, Num Scouts:{num_scouts}")
 
         if (game_state.my_health < 3):
-            game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
-            self.attacked.append(True)
+            self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
             return
         # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 30%
         # checks if we are not at MP limit for it to not grow enough in the future
@@ -157,20 +175,18 @@ class Offense(gamelib.AlgoCore):
                     self.MP_THRESHOLD += self.MP_BOOST
                     self.attacked.append(False)
                 else:
-                    self.MP_THRESHOLD -= 0.5*self.MP_BOOST
+                    self.MP_THRESHOLD -= self.MP_BOOST
                     spawn_location = friendly_edges[damages.index(max(damages))]
                     gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
-                    game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
-                    self.attacked.append(True)
+                    self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
             else:
                 spawn_location = friendly_edges[damages.index(max(damages))]
                 gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
-                game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
-                self.attacked.append(True)
+                self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
+
         else:
             spawn_location = friendly_edges[damages.index(max(damages))]
             gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
-            game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
-            self.attacked.append(True)
+            self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
 
     
