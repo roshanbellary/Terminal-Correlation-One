@@ -12,11 +12,11 @@ class Defense(gamelib.AlgoCore):
 
     def __init__(self):
         self.curr_game_state = None
+        self.curr_SP = None
 
     def turret_opt(self, game_state, TURRET, SP):
-        self.curr_game_state = None
         self.curr_game_state = copy.deepcopy(game_state)
-        # self.curr_SP = self.curr_game_state.get_resource(SP)
+        self.curr_SP = self.curr_game_state.get_resource(SP)
         arena_size = self.curr_game_state.game_map.ARENA_SIZE
         half_arena = self.curr_game_state.game_map.HALF_ARENA
 
@@ -27,18 +27,13 @@ class Defense(gamelib.AlgoCore):
         UPGRADE_TURRET_DAMAGE = upgraded_unit.damage_i
         UPGRADE_TURRET_MAX_HEALTH = upgraded_unit.max_health
         self.curr_game_state.game_map.remove_unit([11, 16])
+
         while True:
-            if self.curr_game_state.get_resource(SP) > 0:
+            if self.curr_SP > 0:
                 gamelib.debug_write('again')
                 path_costs, turret_hits = self.calc_path_damages()
 
                 point_costs, path_counts = self.calc_point_costs(path_costs)
-
-                # for y in range(half_arena):
-                #     for x in range(arena_size):
-                #         # point_costs[x][y] = point_costs[x][y] * np.abs(half_arena - y) * np.abs(half_arena - np.abs(half_arena - x)) / 169
-                #         if y > half_arena / 2:
-                #             point_costs[x][y] = point_costs[x][y] / 2
 
                 try:
                     turret_costs = np.zeros((arena_size, half_arena))
@@ -129,13 +124,12 @@ class Defense(gamelib.AlgoCore):
                             for x in range(arena_size):
                                 if self.curr_game_state.game_map.in_arena_bounds([x, y]):
                                     if turret_costs[x][y] != 0:
-                                        if self.curr_game_state.can_spawn(TURRET, [x, y]):
+                                        if self.can_spawn(TURRET, [x, y]):
                                             new_turret_cost_ratios[x][y] = (gamelib.GameUnit(TURRET,
                                                                                              self.curr_game_state.config).damage_i /
                                                                             turret_costs[x][y]) / \
                                                                            (self.curr_game_state.type_cost(TURRET)[
-                                                                                SP] / self.curr_game_state.get_resource(
-                                                                               SP))
+                                                                                SP] / self.curr_SP)
                                             if y > half_arena / 2:
                                                 new_turret_cost_ratios[x][y] *= 2
                                             # new_turret_cost_ratios[x][y] = new_turret_cost_ratios[x][y] * y * np.abs(half_arena - x) / 169
@@ -162,8 +156,7 @@ class Defense(gamelib.AlgoCore):
                                         if cost != 0:
                                             upgraded_turret_cost_ratios[x][y] = (UPGRADE_TURRET_DAMAGE /
                                                                                  upgraded_turret_costs[x][y]) / \
-                                                                                (cost / self.curr_game_state.get_resource(
-                                                                                    SP))
+                                                                                (cost / self.curr_SP)
                                             upgraded_turret_points[x][y] = cost
                                             if y > half_arena / 2:
                                                 upgraded_turret_cost_ratios[x][y] *= 2
@@ -206,27 +199,30 @@ class Defense(gamelib.AlgoCore):
                 # curr_max_turret_pos = np.array(
                 #     np.unravel_index(np.argmin(curr_turret_cost_ratios), curr_turret_cost_ratios.shape)).reshape(1,
                 #                                                                                                  -1).tolist()
+
                 if np.max(upgraded_turret_cost_ratios) > 1 and self.can_spawn_upgraded_turret(
                         upgraded_max_turret_pos[0], TURRET, SP):
                     gamelib.debug_write('upgrade')
                     gamelib.debug_write(upgraded_max_turret_pos)
-                    gamelib.debug_write(self.curr_game_state.get_resource(SP))
+                    gamelib.debug_write(self.curr_SP)
                     game_state.attempt_spawn(TURRET, upgraded_max_turret_pos)
                     game_state.attempt_upgrade(upgraded_max_turret_pos)
                     gamelib.debug_write(self.curr_game_state.attempt_spawn(TURRET, upgraded_max_turret_pos))
                     gamelib.debug_write(self.curr_game_state.attempt_upgrade(upgraded_max_turret_pos))
                     # self.curr_game_state.game_map.add_unit(TURRET, upgraded_max_turret_pos[0])
                     # self.curr_game_state.game_map[upgraded_max_turret_pos[0]][0].upgrade()
-                    self.curr_game_state.submit_turn()
+                    # self.curr_game_state.submit_turn()
+                    # gamelib.debug_write(upgraded_turret_points[upgraded_max_turret_pos[0][0]][upgraded_max_turret_pos[0][1]])
+                    self.curr_SP -= upgraded_turret_points[upgraded_max_turret_pos[0][0]][upgraded_max_turret_pos[0][1]]
                     gamelib.debug_write(self.curr_game_state.get_resource(SP))
-                elif np.max(new_turret_cost_ratios) > 1 and self.curr_game_state.can_spawn(TURRET,
-                                                                                             new_max_turret_pos[0]):
+                elif np.max(new_turret_cost_ratios) > 1 and self.can_spawn(TURRET, new_max_turret_pos[0]):
                     gamelib.debug_write('add new')
                     gamelib.debug_write(new_max_turret_pos)
                     game_state.attempt_spawn(TURRET, new_max_turret_pos)
                     self.curr_game_state.attempt_spawn(TURRET, new_max_turret_pos)
+                    self.curr_SP -= self.curr_game_state.type_cost(TURRET)[SP]
                     # self.curr_game_state.game_map.add_unit(TURRET, new_max_turret_pos[0])
-                    self.curr_game_state.submit_turn()
+                    # self.curr_game_state.submit_turn()
                 # elif np.min(curr_turret_cost_ratios) < 0.01:
                 #     gamelib.debug_write('remove')
                 #     gamelib.debug_write(curr_max_turret_pos)
@@ -241,12 +237,18 @@ class Defense(gamelib.AlgoCore):
 
     def can_spawn_upgraded_turret(self, loc, TURRET, SP):
         can_spawn = self.curr_game_state.can_spawn(TURRET, loc) and \
-                    self.curr_game_state.get_resource(SP) > self.curr_game_state.type_cost(TURRET, upgrade=True)[SP] + \
+                    self.curr_SP > self.curr_game_state.type_cost(TURRET, upgrade=True)[SP] + \
                     self.curr_game_state.type_cost(TURRET)[SP]
         can_upgrade = self.curr_game_state.contains_stationary_unit(loc) and (
                 not self.curr_game_state.game_map[loc][0].upgraded and
                 self.curr_game_state.get_resource(SP) > self.curr_game_state.type_cost(TURRET, upgrade=True)[SP])
         return can_spawn or can_upgrade
+
+    def can_spawn(self, unit_type, location):
+        affordable = self.curr_SP >= self.curr_game_state.type_cost(unit_type)[0]
+        blocked = self.curr_game_state.contains_stationary_unit(location) or (len(self.curr_game_state.game_map[location[0], location[1]]) > 0)
+        correct_territory = location[1] < self.curr_game_state.HALF_ARENA
+        return affordable and correct_territory and not blocked
 
     def calc_path_damages(self):
         enemy_edges = self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_LEFT) + \
