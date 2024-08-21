@@ -69,11 +69,12 @@ class AlgoStrategy(gamelib.AlgoCore):
             game_state.attempt_spawn(WALL, init_wall_locations)
             game_state.attempt_upgrade(init_wall_locations)
 
-        self.starter_strategy(game_state)
-        game_state.submit_turn()
+        sp_remaining = self.offense_instance.send_the_cavalry(game_state, SCOUT, SUPPORT, MP, SP)
         end_time = time.time()
         elapsed_time = end_time - start_time
         gamelib.debug_write(f"Time taken to execute both methods: {elapsed_time:.6f} seconds")
+        self.defense_instance.turret_opt(game_state, sp_remaining, TURRET, WALL, SP)
+        game_state.submit_turn()
 
     """
     NOTE: All the methods after this point are part of the sample starter-algo
