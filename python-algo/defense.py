@@ -10,13 +10,14 @@ import time
 
 
 def go_to_target_edge(game_map, loc, target_edge):
+    before_path = [loc.copy()]
     new_path = [loc.copy()]
     direction = []
-    if target_edge == game_map.BOTTOM_LEFT:
-        direction = [[0, -1], [-1, 0]] # Move up, then left
+    if target_edge == game_map.TOP_LEFT:
+        direction = [[0, 1], [-1, 0]]  # Move up, then left
         direction_set = 0
     else:
-        direction = [[0, -1], [1, 0]] # Move up, then right
+        direction = [[0, 1], [1, 0]]  # Move up, then right
         direction_set = 1
     while loc not in game_map.get_edge_locations(target_edge):
         # Update location by adding the current direction
@@ -25,9 +26,9 @@ def go_to_target_edge(game_map, loc, target_edge):
         if not game_map.in_arena_bounds(loc) and loc not in game_map.get_edge_locations(target_edge):
             # Revert the location change if out of bounds
             loc = [loc[0] - direction[direction_set][0], loc[1] - direction[direction_set][1]]
-            direction_set = (direction_set + 1) % 2 # Try the other direction
+            direction_set = (direction_set + 1) % 2  # Try the other direction
         elif loc != new_path[-1]:
-            new_path.append(loc.copy()) # Append a copy of the current location
+            new_path.append(loc.copy())  # Append a copy of the current location
             # Ensure the final location is added to the path
         if new_path[-1] != loc:
             new_path.append(loc.copy())
@@ -68,12 +69,12 @@ class Defense(gamelib.AlgoCore):
 
                 valid_positions = np.array([[self.curr_game_state.game_map.in_arena_bounds([x, y])
                                              for x in range(arena_size)]
-                                            for y in range(half_arena - 1)])
+                                            for y in range(half_arena)])
 
                 try:
                     turret_costs = np.zeros((arena_size, half_arena))
                     turret_counts = np.zeros((arena_size, half_arena))
-                    for y in range(half_arena - 1):
+                    for y in range(half_arena):
                         for x in range(arena_size):
                             try:
                                 if valid_positions[y, x]:
@@ -96,7 +97,7 @@ class Defense(gamelib.AlgoCore):
 
                     upgraded_turret_costs = np.zeros((arena_size, half_arena))
                     upgraded_turret_counts = np.zeros((arena_size, half_arena))
-                    for y in range(half_arena - 1):
+                    for y in range(half_arena):
                         for x in range(arena_size):
                             try:
                                 if valid_positions[y, x]:
@@ -154,14 +155,14 @@ class Defense(gamelib.AlgoCore):
                     # cost_ratio_multipliers = self.get_cost_ratios_multipliers(scored_on_locations)
                     try:
                         new_turret_cost_ratios = np.zeros((arena_size, half_arena))
-                        for y in range(half_arena - 1):
+                        for y in range(half_arena):
                             for x in range(arena_size):
                                 if valid_positions[y, x]:
                                     if turret_costs[x][y] != 0:
                                         if self.can_spawn(TURRET, [x, y]):
                                             new_turret_cost_ratios[x][y] = (gamelib.GameUnit(TURRET,
-                                                                                             self.curr_game_state.config).damage_i /
-                                                                            turret_costs[x][y]) / \
+                                                                                         self.curr_game_state.config).damage_i /
+                                                                        turret_costs[x][y]) / \
                                                                            (self.curr_game_state.type_cost(TURRET)[
                                                                                 SP] / self.curr_SP)
                                     else:
@@ -173,7 +174,7 @@ class Defense(gamelib.AlgoCore):
                     try:
                         upgraded_turret_cost_ratios = np.zeros((arena_size, half_arena))
                         upgraded_turret_points = np.zeros((arena_size, half_arena))
-                        for y in range(half_arena - 1):
+                        for y in range(half_arena):
                             for x in range(arena_size):
                                 if valid_positions[y, x]:
                                     cost = self.curr_game_state.type_cost(TURRET, upgrade=True)[SP] + \
@@ -200,7 +201,8 @@ class Defense(gamelib.AlgoCore):
                         for x in range(arena_size):
                             if turret_hits[x][y] != 0 and y > 10:
                                 if self.can_spawn_wall(WALL, [x, y + 1], SP):
-                                    wall_cost_ratios[x][y + 1] = pow(np.abs(half_arena - np.abs(half_arena - x)) / half_arena, 2) * \
+                                    wall_cost_ratios[x][y + 1] = pow(
+                                        np.abs(half_arena - np.abs(half_arena - x)) / half_arena, 2) * \
                                                                  pow(y / half_arena, 2) * \
                                                                  gamelib.GameUnit(WALL,
                                                                                   self.curr_game_state.config).max_health * \
@@ -318,9 +320,9 @@ class Defense(gamelib.AlgoCore):
         multipliers = np.full((self.curr_game_state.game_map.ARENA_SIZE, self.curr_game_state.game_map.HALF_ARENA), 1)
         for x in range(self.curr_game_state.game_map.ARENA_SIZE):
             for y in range(self.curr_game_state.game_map.HALF_ARENA):
-                if y > self.curr_game_state.game_map.HALF_ARENA / 2:
-                    multipliers[x][y] *= 10
-                # multipliers[x][y] += y * np.abs(self.curr_game_state.game_map.HALF_ARENA - x)
+                # if y > self.curr_game_state.game_map.HALF_ARENA / 2:
+                #     multipliers[x][y] *= 10
+                multipliers[x][y] *= (pow(y, 2) + np.abs(self.curr_game_state.HALF_ARENA - np.abs(self.curr_game_state.game_map.HALF_ARENA - x)))
                 # multipliers[x][y] *= y
 
         enemy_edges = self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_LEFT) + \
@@ -337,10 +339,10 @@ class Defense(gamelib.AlgoCore):
             cost = 0
             if path is not None and path[-1] in friendly_edges:
                 if len(scored_locations) > 0:
-                    mult = pow(10 * np.sum(np.all(np.array(scored_locations) == path[-1], axis=1)), 1.5)
+                    mult = pow(3 * np.sum(np.all(np.array(scored_locations) == path[-1], axis=1)), 3)
                 for path_location in path:
                     for unit in self.curr_game_state.get_attackers(path_location, 0):
-                        loc_cost = unit.damage_i * pow(unit.health / unit.max_health, 2)
+                        loc_cost = unit.damage_i * pow(unit.health / unit.max_health, 3)
                         cost += loc_cost
                         turret_hits[unit.x][unit.y] += unit.damage_i
                         if len(scored_locations) > 0 and path_location[1] < self.curr_game_state.game_map.HALF_ARENA:
@@ -374,4 +376,3 @@ class Defense(gamelib.AlgoCore):
                                 where=path_counts != 0)
 
         return point_costs, path_counts
-
