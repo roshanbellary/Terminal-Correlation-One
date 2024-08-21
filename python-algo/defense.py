@@ -34,7 +34,7 @@ class Defense(gamelib.AlgoCore):
         self.curr_game_state.game_map.remove_unit([11, 16])
 
         while True:
-            if self.curr_SP > 0:
+            if self.curr_SP > 0 and time.time() - start_time < 3:
                 gamelib.debug_write('again')
                 path_costs, turret_hits, cost_ratio_multipliers = self.calc_path_damages(scored_on_locations)
 
@@ -240,7 +240,7 @@ class Defense(gamelib.AlgoCore):
                     self.curr_SP -= self.curr_game_state.type_cost(TURRET)[SP]
                 elif np.max(upgraded_turret_cost_ratios) > 0.05 and np.max(
                         upgraded_turret_cost_ratios) == max_cost and self.can_spawn_upgraded_turret(
-                        upgraded_max_turret_pos[0], TURRET, SP):
+                    upgraded_max_turret_pos[0], TURRET, SP):
                     gamelib.debug_write('upgrade')
                     gamelib.debug_write(upgraded_max_turret_pos)
                     game_state.attempt_spawn(TURRET, upgraded_max_turret_pos)
@@ -260,29 +260,6 @@ class Defense(gamelib.AlgoCore):
             else:
                 gamelib.debug_write('Defense Time: ' + str(time.time() - start_time))
                 return
-
-    # def get_cost_ratios_multipliers(self, scored_locations):
-    #     multipliers = np.full((self.curr_game_state.game_map.ARENA_SIZE, self.curr_game_state.game_map.HALF_ARENA), 1)
-    #     for x in range(self.curr_game_state.game_map.ARENA_SIZE):
-    #         for y in range(self.curr_game_state.game_map.HALF_ARENA):
-    #             # if y > half_arena / 2:
-    #             #     upgraded_turret_cost_ratios[x][y] *= 2
-    #             # multipliers[x][y] += y * np.abs(self.curr_game_state.game_map.HALF_ARENA - x)
-    #             multipliers[x][y] *= y
-    #
-    #     enemy_edges = self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_LEFT) + \
-    #                   self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_RIGHT)
-    #     for loc in enemy_edges:
-    #         path = self.curr_game_state.find_path_to_edge(loc)
-    #         if path is not None:
-    #             mult = 2 * np.sum(scored_locations == path[-1])
-    #             for i in path:
-    #                 if i[1] < self.curr_game_state.game_map.HALF_ARENA:
-    #                     multipliers[i[0]][i[1]] += pow(mult, 2)
-    #
-    #     multipliers = multipliers / np.max(multipliers)
-    #     multipliers = multipliers * self.curr_game_state.get_resources(player_index=1)[1]
-    #     return multipliers
 
     def can_spawn_upgraded_turret(self, loc, TURRET, SP):
         can_spawn = self.curr_game_state.can_spawn(TURRET, loc) and \
@@ -317,20 +294,24 @@ class Defense(gamelib.AlgoCore):
 
         enemy_edges = self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_LEFT) + \
                       self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_RIGHT)
+        friendly_edges = self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.BOTTOM_LEFT) + \
+                         self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.BOTTOM_RIGHT)
         path_costs = []
         turret_hits = np.zeros((self.curr_game_state.game_map.ARENA_SIZE, self.curr_game_state.game_map.HALF_ARENA))
 
         for location in enemy_edges:
             path = self.curr_game_state.find_path_to_edge(location)
             cost = 0
-            if path is not None:
-                mult = 2 * np.sum(scored_locations == path[-1])
+            if path is not None and path[-1] in friendly_edges:
+                if len(scored_locations) > 0:
+                    gamelib.debug_write(scored_locations)
+                    mult = 2 * np.sum(np.all(np.array(scored_locations) == path[-1], axis=1))
                 for path_location in path:
                     for unit in self.curr_game_state.get_attackers(path_location, 0):
                         loc_cost = unit.damage_i * unit.health / unit.max_health
                         cost += loc_cost
                         turret_hits[unit.x][unit.y] += unit.damage_i
-                        if path_location[1] < self.curr_game_state.game_map.HALF_ARENA:
+                        if len(scored_locations) > 0 and path_location[1] < self.curr_game_state.game_map.HALF_ARENA:
                             multipliers[path_location[0]][path_location[1]] += pow(mult, 2)
             path_costs.append(cost)
 
