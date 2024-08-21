@@ -250,29 +250,10 @@ class Offense(gamelib.AlgoCore):
             ind = find_latest_true(self.attacked)
             percent_change = (self.enemy_health[ind] - self.enemy_health[-1])/self.enemy_health[ind]
             if (ind == len(self.attacked)-1) and (percent_change < 0.2):
+                gamelib.debug_write(f"threshold update: {self.MP_THRESHOLD} and threshold_boost: {self.MP_BOOST}")
                 self.MP_THRESHOLD += self.MP_BOOST
+                self.attacked.append(False)
             else:
-                # spawn_location = friendly_edges[damages.index(max(damages))]
-                # gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
-                # game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
-                # self.attacked.append(True)
-                #checks if attack was unsuccessful
-                # avg_damage_dict = self.calculate_sector_average_damage(game_state)
-                # min_damage_sector = min(avg_damage_dict, key=avg_damage_dict.get)
-                # avg_damage_dict = {k: v for k, v in avg_damage_dict.items() if k != min_damage_sector}
-                # min_damage_sector = min(avg_damage_dict, key=avg_damage_dict.get)
-                
-                # sector_edge_dict = self.find_opposing_friendly_edges(game_state)
-                # friendly_edge_set = sector_edge_dict[min_damage_sector]
-                # available_locations = [loc for loc in friendly_edge_set if not game_state.contains_stationary_unit(loc)]
-                # if not available_locations:
-                #     return
-                # damages = [self.simulate_an_attack(game_state, SCOUT, MP, loc) for loc in available_locations]
-                # # Attempt to spawn SCOUT units at location with most surviving scouts
-                # spawn_location = available_locations[damages.index(max(damages))]
-                # gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
-                # game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
-                # self.attacked.append(True)
                 spawn_location = friendly_edges[damages.index(max(damages))]
                 gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
                 game_state.attempt_spawn(SCOUT, spawn_location, game_state.number_affordable(SCOUT))
