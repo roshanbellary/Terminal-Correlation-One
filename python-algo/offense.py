@@ -167,7 +167,7 @@ class Offense(gamelib.AlgoCore):
         gamelib.debug_write(f"Simulated Path: {simulated_path}")
         gamelib.debug_write(f"Scouts Surviving: {num_scouts}")
         game_state.game_map = game_map_copy
-        return num_scouts
+        return (num_scouts, -len(destroyed_attackers))
     """
         -Attacks should consider low health in case of desparation need to send all MP to send out scouts
             -Do when health < 3
@@ -213,7 +213,7 @@ class Offense(gamelib.AlgoCore):
         friendly_edges = [loc for loc in friendly_edges if not game_state.contains_stationary_unit(loc) ]
         damages = [self.simulate_an_attack(game_state, SCOUT, MP, loc) for loc in friendly_edges]
         spawn_location = friendly_edges[damages.index(max(damages))]
-        num_scouts = max(damages)
+        num_scouts, _ = max(damages)
         #gamelib.debug_write(f" Mobile Points: {game_state.get_resource(MP)}, Num Scouts:{num_scouts}")
 
         if (game_state.my_health < 3):
