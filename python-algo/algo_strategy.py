@@ -73,7 +73,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         end_time = time.time()
         elapsed_time = end_time - start_time
         gamelib.debug_write(f"Time taken to execute both methods: {elapsed_time:.6f} seconds")
-        self.defense_instance.turret_opt(game_state, sp_remaining, TURRET, WALL, SP)
+        self.defense_instance.turret_opt(game_state, sp_remaining, self.scored_on_locations, TURRET, WALL, SP)
         game_state.submit_turn()
 
     """
