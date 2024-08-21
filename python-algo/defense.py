@@ -161,7 +161,7 @@ class Defense(gamelib.AlgoCore):
                                         if cost != 0:
                                             upgraded_turret_cost_ratios[x][y] = (UPGRADE_TURRET_DAMAGE /
                                                                                  upgraded_turret_costs[x][y]) / \
-                                                                                (cost / self.curr_SP)
+                                                                                (cost / self.curr_SP) * 2
                                             upgraded_turret_points[x][y] = cost
                                     else:
                                         upgraded_turret_cost_ratios[x][y] = 0
@@ -169,24 +169,17 @@ class Defense(gamelib.AlgoCore):
                     except Exception as e:
                         gamelib.debug_write(f"Error calculating upgraded turret cost ratios: {e}")
 
-                    # wall_cost_ratios = np.zeros((arena_size, half_arena))
-                    # for y in range(half_arena - 1):
-                    #     for x in range(arena_size):
-                    #         if turret_hits[x][y] != 0:
-                    #             if not self.curr_game_state.contains_stationary_unit:
-                    #                 wall_cost_ratios[x][y + 1] = (half_arena - np.abs(half_arena - x)) / (
-                    #                         1 / self.curr_SP)
-                    #             else:
-                    #                 for unit in self.curr_game_state.game_map[x, y + 1]:
-                    #                     if unit.damage_i == 0 and not unit.upgraded:
-                    #                         wall_cost_ratios[x][y + 1] = 100 / (
-                    #                                 1 / self.curr_SP)
-
-                    gamelib.debug_write('ratios')
-                    gamelib.debug_write(np.max(upgraded_turret_cost_ratios))
-                    gamelib.debug_write(np.max(new_turret_cost_ratios))
-                    # gamelib.debug_write(np.min(curr_turret_cost_ratios))
-                    # gamelib.debug_write(np.max(wall_cost_ratios))
+                    wall_cost_ratios = np.zeros((arena_size, half_arena))
+                    for y in range(half_arena - 1):
+                        for x in range(arena_size):
+                            if turret_hits[x][y] != 0:
+                                if self.can_spawn_wall(WALL, [x, y + 1], SP):
+                                    wall_cost_ratios[x][y + 1] = np.abs(half_arena - np.abs(half_arena - x)) / half_arena * \
+                                                                 y / half_arena * \
+                                                                 gamelib.GameUnit(WALL,
+                                                                                  self.curr_game_state.config).max_health * gamelib.GameUnit(WALL,
+                                                                                  self.curr_game_state.config).max_health / turret_hits[x][y] / (
+                                                                         4 / self.curr_SP)
 
                 except Exception as e:
                     gamelib.debug_write(f"Error in main turret cost calculation: {e}")
@@ -205,32 +198,34 @@ class Defense(gamelib.AlgoCore):
                 new_max_turret_pos = np.array(np.unravel_index(np.argmax(new_turret_cost_ratios),
                                                                new_turret_cost_ratios.shape)).reshape(1, -1).tolist()
                 while np.count_nonzero(new_turret_cost_ratios) > 0 and np.max(
-                        new_turret_cost_ratios) > 0.05 and not self.curr_game_state.can_spawn(TURRET,
-                                                                                              new_max_turret_pos[0]):
+                        new_turret_cost_ratios) > 0.05 and not self.can_spawn(TURRET, new_max_turret_pos[0]):
                     new_turret_cost_ratios[new_max_turret_pos[0][0]][new_max_turret_pos[0][1]] = 0
                     new_max_turret_pos = np.array(np.unravel_index(np.argmax(new_turret_cost_ratios),
                                                                    new_turret_cost_ratios.shape)).reshape(1,
                                                                                                           -1).tolist()
 
-                # max_wall_pos = np.array(np.unravel_index(np.argmax(wall_cost_ratios),
-                #                                          wall_cost_ratios.shape)).reshape(1, -1).tolist()
+                max_wall_pos = np.array(np.unravel_index(np.argmax(wall_cost_ratios),
+                                                         wall_cost_ratios.shape)).reshape(1, -1).tolist()
+                while np.count_nonzero(wall_cost_ratios) > 0 and np.max(
+                        wall_cost_ratios) > 0.05 and not self.can_spawn_wall(WALL, max_wall_pos[0], SP):
+                    wall_cost_ratios[max_wall_pos[0][0]][max_wall_pos[0][1]] = 0
+                    max_wall_pos = np.array(np.unravel_index(np.argmax(wall_cost_ratios),
+                                                             wall_cost_ratios.shape)).reshape(1, -1).tolist()
+
                 #
                 # curr_max_turret_pos = np.array(
                 #     np.unravel_index(np.argmin(curr_turret_cost_ratios), curr_turret_cost_ratios.shape)).reshape(1,
                 #                                                                                                  -1).tolist()
 
+                gamelib.debug_write('ratios')
+                gamelib.debug_write(np.max(upgraded_turret_cost_ratios))
+                gamelib.debug_write(np.max(new_turret_cost_ratios))
+                # gamelib.debug_write(np.min(curr_turret_cost_ratios))
+                gamelib.debug_write(np.max(wall_cost_ratios))
+
                 max_cost = np.max([np.max(new_turret_cost_ratios),
-                                   np.max(upgraded_turret_cost_ratios)])
-                # if np.max(wall_cost_ratios) > 1 and True and self.can_spawn_wall(WALL, max_wall_pos[0], SP):
-                #     gamelib.debug_write('wall')
-                #     gamelib.debug_write(max_wall_pos)
-                #     self.curr_game_state.attempt_spawn(WALL, max_wall_pos)
-                #     if game_state.attempt_spawn(WALL, max_wall_pos) == 0:
-                #         game_state.attempt_upgrade(max_wall_pos)
-                #         self.curr_game_state.attempt_upgrade(max_wall_pos)
-                #         self.curr_SP -= self.curr_game_state.type_cost(WALL, upgrade=True)[SP]
-                #     else:
-                #         self.curr_SP -= self.curr_game_state.type_cost(WALL)[SP]
+                                   np.max(upgraded_turret_cost_ratios), np.max(wall_cost_ratios)])
+
                 if np.max(new_turret_cost_ratios) > 0.05 and np.max(
                         new_turret_cost_ratios) == max_cost and self.can_spawn(TURRET, new_max_turret_pos[0]):
                     gamelib.debug_write('add new')
@@ -248,6 +243,15 @@ class Defense(gamelib.AlgoCore):
                     # self.curr_game_state.attempt_spawn(TURRET, upgraded_max_turret_pos)
                     # self.curr_game_state.attempt_upgrade(upgraded_max_turret_pos)
                     self.curr_SP -= upgraded_turret_points[upgraded_max_turret_pos[0][0]][upgraded_max_turret_pos[0][1]]
+                elif np.max(wall_cost_ratios) > 0.05 and True and self.can_spawn_wall(WALL, max_wall_pos[0], SP):
+                    gamelib.debug_write('wall')
+                    gamelib.debug_write(max_wall_pos)
+                    if self.curr_game_state.attempt_spawn(WALL, max_wall_pos):
+                        self.curr_game_state.attempt_upgrade(max_wall_pos)
+                        self.curr_SP -= self.curr_game_state.type_cost(WALL, upgrade=True)[SP]
+                    else:
+                        self.curr_SP -= self.curr_game_state.type_cost(WALL)[SP]
+                    # gamelib.debug_write(self.curr_game_state.game_map[max_wall_pos[0]][0].health)
                 # elif np.min(curr_turret_cost_ratios) < 0.1:
                 #     gamelib.debug_write('remove')
                 #     gamelib.debug_write(curr_max_turret_pos)
@@ -304,15 +308,14 @@ class Defense(gamelib.AlgoCore):
             cost = 0
             if path is not None and path[-1] in friendly_edges:
                 if len(scored_locations) > 0:
-                    gamelib.debug_write(scored_locations)
-                    mult = 2 * np.sum(np.all(np.array(scored_locations) == path[-1], axis=1))
+                    mult = pow(10 * np.sum(np.all(np.array(scored_locations) == path[-1], axis=1)), 2)
                 for path_location in path:
                     for unit in self.curr_game_state.get_attackers(path_location, 0):
                         loc_cost = unit.damage_i * unit.health / unit.max_health
                         cost += loc_cost
                         turret_hits[unit.x][unit.y] += unit.damage_i
                         if len(scored_locations) > 0 and path_location[1] < self.curr_game_state.game_map.HALF_ARENA:
-                            multipliers[path_location[0]][path_location[1]] += pow(mult, 2)
+                            multipliers[path_location[0]][path_location[1]] += mult
             path_costs.append(cost)
 
         multipliers = multipliers / np.max(multipliers)

@@ -208,7 +208,8 @@ class AlgoStrategy(gamelib.AlgoCore):
         for breach in breaches:
             location = breach[0]
             unit_owner_self = True if breach[4] == 1 else False
-            # When parsing the frame data directly, 
+            gamelib.debug_write(breach)
+            # When parsing the frame data directly,
             # 1 is integer for yourself, 2 is opponent (StarterKit code uses 0, 1 as player_index instead)
             if not unit_owner_self:
                 gamelib.debug_write("Got scored on at: {}".format(location))
