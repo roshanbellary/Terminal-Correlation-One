@@ -9,6 +9,33 @@ import copy
 import time
 
 
+def go_to_target_edge(game_map, loc, target_edge):
+    before_path = [loc.copy()]
+    new_path = [loc.copy()]
+    direction = []
+    if target_edge == game_map.TOP_LEFT:
+        direction = [[0, 1], [-1, 0]] # Move up, then left
+        direction_set = 0
+    else:
+        direction = [[0, 1], [1, 0]] # Move up, then right
+        direction_set = 1
+    while loc not in game_map.get_edge_locations(target_edge):
+        # Update location by adding the current direction
+        loc = [loc[0] + direction[direction_set][0], loc[1] + direction[direction_set][1]]
+        # Ensure loc remains within the game bounds
+        if not game_map.in_arena_bounds(loc) and loc not in game_map.get_edge_locations(target_edge):
+            # Revert the location change if out of bounds
+            loc = [loc[0] - direction[direction_set][0], loc[1] - direction[direction_set][1]]
+            direction_set = (direction_set + 1) % 2 # Try the other direction
+        elif loc != new_path[-1]:
+            new_path.append(loc.copy()) # Append a copy of the current location
+            # Ensure the final location is added to the path
+        if new_path[-1] != loc:
+            new_path.append(loc.copy())
+    gamelib.debug_write(new_path)
+    return new_path
+
+
 class Defense(gamelib.AlgoCore):
 
     def __init__(self):
@@ -34,7 +61,7 @@ class Defense(gamelib.AlgoCore):
         self.curr_game_state.game_map.remove_unit([11, 16])
 
         while True:
-            if self.curr_SP > 0 and time.time() - start_time < 5.8 - elapsed_time:
+            if self.curr_SP > 0 and time.time() - start_time < 8 - elapsed_time:
                 gamelib.debug_write('again')
                 path_costs, turret_hits, cost_ratio_multipliers = self.calc_path_damages(scored_on_locations)
 
@@ -306,6 +333,8 @@ class Defense(gamelib.AlgoCore):
 
         for location in enemy_edges:
             path = self.curr_game_state.find_path_to_edge(location)
+            # path = go_to_target_edge(self.curr_game_state.game_map, location,
+            #                               self.curr_game_state.game_map.TOP_RIGHT if location[0] < self.curr_game_state.game_map.HALF_ARENA else self.curr_game_state.game_map.TOP_LEFT)
             cost = 0
             if path is not None and path[-1] in friendly_edges:
                 if len(scored_locations) > 0:
@@ -346,3 +375,4 @@ class Defense(gamelib.AlgoCore):
                                 where=path_counts != 0)
 
         return point_costs, path_counts
+

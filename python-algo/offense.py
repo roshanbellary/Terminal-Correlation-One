@@ -19,7 +19,7 @@ class Offense(gamelib.AlgoCore):
     def __init__(self, algo_strategy):
         self.algo_strategy = algo_strategy
     def go_to_target_edge(self, game_map, loc, target_edge):
-        gamelib.debug_write(loc)
+        # gamelib.debug_write(loc)
         before_path = [loc.copy()]
         new_path = [loc.copy()]
         direction = []
@@ -62,7 +62,7 @@ class Offense(gamelib.AlgoCore):
         curr_path = game_state.find_path_to_edge(curr_loc, target_edge)
         #gamelib.debug_write(f"curr_path:{curr_path}")
         curr_index = 0
-        gamelib.debug_write(f"Starting Location:{curr_loc}")
+        # gamelib.debug_write(f"Starting Location:{curr_loc}")
         #gamelib.debug_write(f"Target Edge: {points_target_edge}")
         gave_up = False
         set_arr = False 
@@ -158,8 +158,8 @@ class Offense(gamelib.AlgoCore):
         #gamelib.debug_write(f"num_scouts: {num_scouts}")
         if simulated_path[-1] not in points_target_edge:
             num_scouts = 0
-        gamelib.debug_write(f"Simulated Path: {simulated_path}")
-        gamelib.debug_write(f"Scouts Surviving: {num_scouts}")
+        # gamelib.debug_write(f"Simulated Path: {simulated_path}")
+        # gamelib.debug_write(f"Scouts Surviving: {num_scouts}")
         game_state.game_map = game_map_copy
         return (num_scouts, -len(destroyed_attackers))
     """
@@ -171,7 +171,7 @@ class Offense(gamelib.AlgoCore):
             -If opponent has high SP then launch attack on second least well-defended sector to be careful of 
     """
     def send_out_troops(self, game_state, location, SCOUT, SUPPORT):
-        gamelib.debug_write(f"spawn_location:{location}, affordable: {game_state.number_affordable(SCOUT)}")
+        # gamelib.debug_write(f"spawn_location:{location}, affordable: {game_state.number_affordable(SCOUT)}")
         game_state.attempt_spawn(SCOUT, location, game_state.number_affordable(SCOUT))
         val = False
         if (location in game_state.game_map.get_edge_locations(
@@ -191,7 +191,7 @@ class Offense(gamelib.AlgoCore):
                 game_state.attempt_remove([location[0]-1, location[1]-1])
         self.attacked.append(True)
         if val != False:
-            gamelib.debug_write(f"SP cost:{game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT,game_state.config).cost[0]} ")
+            # gamelib.debug_write(f"SP cost:{game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT,game_state.config).cost[0]} ")
             return game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT,game_state.config).cost[0]
         else:
             return game_state.get_resource(self.SP) 
@@ -223,7 +223,7 @@ class Offense(gamelib.AlgoCore):
             return count
         
         if (num_scouts < max(game_state.enemy_health*0.3,self.MP_THRESHOLD)):
-            gamelib.debug_write(f"simulated num_scouts: {num_scouts}, enemy_health: {game_state.enemy_health},  forgone: {find_length_of_forgone(self.attacked)}")
+            # gamelib.debug_write(f"simulated num_scouts: {num_scouts}, enemy_health: {game_state.enemy_health},  forgone: {find_length_of_forgone(self.attacked)}")
             self.attacked.append(False)
         elif (len(self.enemy_health) > 2 and True in self.attacked):
             def find_latest_true(arr):
@@ -235,7 +235,7 @@ class Offense(gamelib.AlgoCore):
             percent_change = (self.enemy_health[ind] - self.enemy_health[-1])/self.enemy_health[ind]
             if (ind == len(self.attacked)-1):
                 if (percent_change < 0.2):
-                    gamelib.debug_write(f"threshold update: {self.MP_THRESHOLD} and threshold_boost: {self.MP_BOOST}")
+                    # gamelib.debug_write(f"threshold update: {self.MP_THRESHOLD} and threshold_boost: {self.MP_BOOST}")
                     self.MP_THRESHOLD += self.MP_BOOST
                     self.attacked.append(False)
                 else:
