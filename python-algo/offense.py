@@ -8,16 +8,38 @@ import json
 import copy
 import heapq
 import gamelib.navigation
+class Resource_Tracker():
+    sp_value = []
+    sp_difference = []
+    def add_sp_value(self, curr):
+        self.sp_value.append(curr)
+        self.sp_difference.append(0)
+        if len(self.sp_value) > 1:
+            self.sp_difference[len(self.sp_value)-2] = self.sp_value[-1] - self.sp_value[-2]
+    def will_enemy_invest(self):
+        sp_neg_vals = np.array([sp_val for idx, sp_val in enumerate(self.sp_value) if self.sp_difference[idx] < 0])
+        if (len(sp_neg_vals) <= 1):
+            return False
+        
+        avg = np.average(sp_neg_vals)
+        stdev = np.std(sp_neg_vals)
+        curr_sp_val = self.sp_value[-1]
+        standard = (curr_sp_val - avg)/stdev
+        cumulative_probability = 0.5 * (1 + np.math.erf(standard / np.sqrt(2)))
+        return (random.random() < cumulative_probability)
+        
+
 class Offense(gamelib.AlgoCore):
-    MP_Limiter = 12
     resource_changes = []
     enemy_health = []
     attacked = []
-    MP_THRESHOLD = 4
+    MP_Limiter = 9
     MP_BOOST = 2
     SP = 0
+    raised_limiter = False
     def __init__(self, algo_strategy):
         self.algo_strategy = algo_strategy
+        self.tracker = Resource_Tracker()
     def go_to_target_edge(self, game_map, loc, target_edge):
         # gamelib.debug_write(loc)
         before_path = [loc.copy()]
@@ -79,7 +101,9 @@ class Offense(gamelib.AlgoCore):
                 if not gave_up:
                     if recompute:
                         recompute = False
-                        curr_path = game_state.find_path_to_edge(curr_loc.copy(), target_edge) 
+                        navigator = gamelib.navigation.ShortestPathFinder()  
+                        navigator.initialize_map(game_state=game_state) 
+                        curr_path = navigator.navigate_multiple_endpoints(start_point=curr_loc.copy(), end_points=points_target_edge, game_state=game_state)  # Call the method on the instance
                         curr_index = 1
                     if curr_index < len(curr_path):
                         curr_loc = curr_path[curr_index]
@@ -89,6 +113,7 @@ class Offense(gamelib.AlgoCore):
                 else:
                     if not set_arr:
                         set_arr = True 
+                        gamelib.debug_write("Given up on path computations?")
                         dir_array = self.go_to_target_edge(game_map_copy, curr_loc, target_edge)
                         curr_loc = dir_array[dir_index]
                     else:
@@ -171,6 +196,7 @@ class Offense(gamelib.AlgoCore):
             -If opponent has high SP then launch attack on second least well-defended sector to be careful of 
     """
     def send_out_troops(self, game_state, location, SCOUT, SUPPORT):
+        self.raised_limiter = False
         # gamelib.debug_write(f"spawn_location:{location}, affordable: {game_state.number_affordable(SCOUT)}")
         game_state.attempt_spawn(SCOUT, location, game_state.number_affordable(SCOUT))
         val = False
@@ -201,7 +227,7 @@ class Offense(gamelib.AlgoCore):
         """
         self.SP = SP
         self.enemy_health.append(game_state.enemy_health)
-        self.resource_changes.append(game_state.get_resource(SP, 1))
+        self.tracker.add_sp_value(game_state.get_resource(SP, 1))
         friendly_edges = game_state.game_map.get_edge_locations(
             game_state.game_map.BOTTOM_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT)
         friendly_edges = [loc for loc in friendly_edges if not game_state.contains_stationary_unit(loc) ]
@@ -215,15 +241,9 @@ class Offense(gamelib.AlgoCore):
         # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 30%
         # checks if we are not at MP limit for it to not grow enough in the future
         # if we are at MP limit or if we can make a sizeable enough dent then we go for an attack
-        def find_length_of_forgone(arr):
-            count = 0
-            for i in range(len(arr)-1, 0, -1):
-                if arr[i] == False:
-                    count += 1
-            return count
-        
-        if (num_scouts < max(game_state.enemy_health*0.3,self.MP_THRESHOLD)):
-            # gamelib.debug_write(f"simulated num_scouts: {num_scouts}, enemy_health: {game_state.enemy_health},  forgone: {find_length_of_forgone(self.attacked)}")
+        gamelib.debug_write(f"expected damage: {num_scouts}")
+        if (self.tracker.will_enemy_invest() and num_scouts < self.MP_Limiter):
+            gamelib.debug_write(f"simulated num_scouts: {num_scouts}, enemy_health: {game_state.enemy_health}")
             self.attacked.append(False)
         elif (len(self.enemy_health) > 2 and True in self.attacked):
             def find_latest_true(arr):
@@ -233,15 +253,10 @@ class Offense(gamelib.AlgoCore):
                 return None
             ind = find_latest_true(self.attacked)
             percent_change = (self.enemy_health[ind] - self.enemy_health[-1])/self.enemy_health[ind]
-            if (ind == len(self.attacked)-1):
-                if (percent_change < 0.2):
-                    # gamelib.debug_write(f"threshold update: {self.MP_THRESHOLD} and threshold_boost: {self.MP_BOOST}")
-                    self.MP_THRESHOLD += self.MP_BOOST
-                    self.attacked.append(False)
-                else:
-                    self.MP_THRESHOLD -= self.MP_BOOST
-                    spawn_location = friendly_edges[damages.index(max(damages))]
-                    return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
+            if (percent_change < 0.15 and not self.raised_limiter):
+                self.MP_Limiter += self.MP_BOOST
+                self.attacked.append(False)
+                self.raised_limiter = True
             else:
                 spawn_location = friendly_edges[damages.index(max(damages))]
                 return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
