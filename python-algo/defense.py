@@ -34,6 +34,14 @@ class Defense(gamelib.AlgoCore):
                 path_costs, turret_hits = self.calc_path_damages()
 
                 point_costs, path_counts = self.calc_point_costs(path_costs)
+<<<<<<< Updated upstream
+=======
+                # for y in range(half_arena):
+                #     for x in range(arena_size):
+                #         # point_costs[x][y] = point_costs[x][y] * np.abs(half_arena - y) * np.abs(half_arena - np.abs(half_arena - x)) / 169
+                #         if y > half_arena / 2:
+                #             point_costs[x][y] = point_costs[x][y] / 2
+>>>>>>> Stashed changes
 
                 try:
                     turret_costs = np.zeros((arena_size, half_arena))
