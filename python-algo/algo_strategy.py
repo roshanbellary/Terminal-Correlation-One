@@ -62,8 +62,8 @@ class AlgoStrategy(gamelib.AlgoCore):
         game_state.suppress_warnings(True)  # Comment or remove this line to enable warnings.
 
         if game_state.turn_number == 0:
-            init_turret_locations = [[3, 12], [24, 12], [13, 12]]
-            init_wall_locations = [[3, 13], [24, 13], [13, 13]]
+            init_turret_locations = [[4, 12], [23, 12], [13, 12]]
+            init_wall_locations = [[4, 13], [23, 13], [13, 13]]
             game_state.attempt_spawn(TURRET, init_turret_locations)
             game_state.attempt_upgrade(init_turret_locations)
             game_state.attempt_spawn(WALL, init_wall_locations)
@@ -90,7 +90,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         # First, place basic defenses
         # self.build_defences(game_state)
         sp_remaining = self.offense_instance.send_the_cavalry(game_state, SCOUT, SUPPORT, MP, SP)
-        self.defense_instance.turret_opt(game_state, sp_remaining, TURRET, WALL, SP)
+        self.defense_instance.turret_opt(game_state, sp_remaining, self.scored_on_locations, TURRET, WALL, SP)
         # # Now build reactive defenses based on where the enemy scored
         # # self.build_reactive_defense(game_state)
         # # If the turn is less than 5, stall with interceptors and wait to see enemy's base
