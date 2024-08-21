@@ -153,8 +153,7 @@ class Offense(gamelib.AlgoCore):
         gamelib.debug_write(f" Mobile Points: {game_state.get_resource(MP)}, Num Scouts:{num_scouts}")
 
         if (game_state.my_health < 3):
-            self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
-            return
+            return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
         # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 30%
         # checks if we are not at MP limit for it to not grow enough in the future
         # if we are at MP limit or if we can make a sizeable enough dent then we go for an attack
@@ -185,15 +184,15 @@ class Offense(gamelib.AlgoCore):
                     self.MP_THRESHOLD -= self.MP_BOOST
                     spawn_location = friendly_edges[damages.index(max(damages))]
                     gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
-                    self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
+                    return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
             else:
                 spawn_location = friendly_edges[damages.index(max(damages))]
                 gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
-                self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
+                return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
 
         else:
             spawn_location = friendly_edges[damages.index(max(damages))]
             gamelib.debug_write(f"spawn_location:{spawn_location}, affordable: {game_state.number_affordable(SCOUT)}")
-            self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
+            return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
 
     
