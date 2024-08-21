@@ -15,6 +15,7 @@ class Offense(gamelib.AlgoCore):
     attacked = []
     MP_THRESHOLD = 4
     MP_BOOST = 2
+    SP = 0
     def __init__(self, algo_strategy):
         self.algo_strategy = algo_strategy
     def calculate_damage(self, game_state, point):
@@ -27,7 +28,7 @@ class Offense(gamelib.AlgoCore):
         num_scouts = game_state.number_affordable(SCOUT)
         track_attacker_health = {}
         destroyed_attackers = []
-        scout_health = num_scouts * gamelib.GameUnit(SCOUT, game_state.config).health
+        scout_health = num_scouts * gamelib.GameUnit(SCOUT, game_state.config).max_health
         curr_loc = spawn_location
         game_map_copy = copy.deepcopy(game_state.game_map)
         target_edge = game_state.get_target_edge(spawn_location)
@@ -115,26 +116,32 @@ class Offense(gamelib.AlgoCore):
     """
     def send_out_troops(self, game_state, location, SCOUT, SUPPORT):
         game_state.attempt_spawn(SCOUT, location, game_state.number_affordable(SCOUT))
+        val = False
         if (location in game_state.game_map.get_edge_locations(
             game_state.game_map.BOTTOM_LEFT)):
             if (location != [0, 13]):
-                game_state.attempt_spawn(SUPPORT, [location[0]-1, location[1]+1], 1)
+                val = game_state.attempt_spawn(SUPPORT, [location[0]-1, location[1]+1], 1)
                 game_state.attempt_remove([location[0]-1, location[1]+1])
             else:
-                game_state.attempt_spawn(SUPPORT, [location[0]+1, location[1]-1], 1)
+                val = game_state.attempt_spawn(SUPPORT, [location[0]+1, location[1]-1], 1)
                 game_state.attempt_remove([location[0]+1, location[1]-1])
         else:
             if (location != [27, 13]):
-                game_state.attempt_spawn(SUPPORT, [location[0]+1, location[1]+1], 1)
+                val = game_state.attempt_spawn(SUPPORT, [location[0]+1, location[1]+1], 1)
                 game_state.attempt_remove([location[0]+1, location[1]+1])
             else:
-                 game_state.attempt_spawn(SUPPORT, [location[0]-1, location[1]-1], 1)
-                 game_state.attempt_remove([location[0]-1, location[1]-1])
+                val = game_state.attempt_spawn(SUPPORT, [location[0]-1, location[1]-1], 1)
+                game_state.attempt_remove([location[0]-1, location[1]-1])
         self.attacked.append(True)
+        if val != False:
+            return game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT,game_state.config).cost[self.SP]
+        else:
+            return game_state.get_resource(self.SP) 
     def send_the_cavalry(self, game_state, SCOUT, SUPPORT, MP, SP):
         """
         Find the least damage cost sectors and send troops to attack there
         """
+        self.SP = SP
         self.enemy_health.append(game_state.enemy_health)
         self.resource_changes.append(game_state.get_resource(SP, 1))
         friendly_edges = game_state.game_map.get_edge_locations(
