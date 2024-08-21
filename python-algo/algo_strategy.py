@@ -90,7 +90,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         # First, place basic defenses
         # self.build_defences(game_state)
         sp_remaining = self.offense_instance.send_the_cavalry(game_state, SCOUT, SUPPORT, MP, SP)
-        self.defense_instance.turret_opt(game_state, TURRET, WALL, SP)
+        self.defense_instance.turret_opt(game_state, sp_remaining, TURRET, WALL, SP)
         # # Now build reactive defenses based on where the enemy scored
         # # self.build_reactive_defense(game_state)
         # # If the turn is less than 5, stall with interceptors and wait to see enemy's base
