@@ -216,7 +216,7 @@ class Defense(gamelib.AlgoCore):
                                                                     upgraded_turret_cost_ratios.shape)).reshape(1,
                                                                                                                 -1).tolist()
                 while np.count_nonzero(upgraded_turret_cost_ratios) > 0 and np.max(
-                        upgraded_turret_cost_ratios) > 0.05 and \
+                        upgraded_turret_cost_ratios) > 1 and \
                         not self.can_spawn_upgraded_turret(upgraded_max_turret_pos[0], TURRET, SP):
                     upgraded_turret_cost_ratios[upgraded_max_turret_pos[0][0]][upgraded_max_turret_pos[0][1]] = 0
                     upgraded_max_turret_pos = np.array(np.unravel_index(np.argmax(upgraded_turret_cost_ratios),
@@ -226,7 +226,7 @@ class Defense(gamelib.AlgoCore):
                 new_max_turret_pos = np.array(np.unravel_index(np.argmax(new_turret_cost_ratios),
                                                                new_turret_cost_ratios.shape)).reshape(1, -1).tolist()
                 while np.count_nonzero(new_turret_cost_ratios) > 0 and np.max(
-                        new_turret_cost_ratios) > 0.05 and not self.can_spawn(TURRET, new_max_turret_pos[0]):
+                        new_turret_cost_ratios) > 1 and not self.can_spawn(TURRET, new_max_turret_pos[0]):
                     new_turret_cost_ratios[new_max_turret_pos[0][0]][new_max_turret_pos[0][1]] = 0
                     new_max_turret_pos = np.array(np.unravel_index(np.argmax(new_turret_cost_ratios),
                                                                    new_turret_cost_ratios.shape)).reshape(1,
@@ -235,7 +235,7 @@ class Defense(gamelib.AlgoCore):
                 max_wall_pos = np.array(np.unravel_index(np.argmax(wall_cost_ratios),
                                                          wall_cost_ratios.shape)).reshape(1, -1).tolist()
                 while np.count_nonzero(wall_cost_ratios) > 0 and np.max(
-                        wall_cost_ratios) > 0.05 and not self.can_spawn_wall(WALL, max_wall_pos[0], SP):
+                        wall_cost_ratios) > 1 and not self.can_spawn_wall(WALL, max_wall_pos[0], SP):
                     wall_cost_ratios[max_wall_pos[0][0]][max_wall_pos[0][1]] = 0
                     max_wall_pos = np.array(np.unravel_index(np.argmax(wall_cost_ratios),
                                                              wall_cost_ratios.shape)).reshape(1, -1).tolist()
@@ -254,14 +254,14 @@ class Defense(gamelib.AlgoCore):
                 max_cost = np.max([np.max(new_turret_cost_ratios),
                                    np.max(upgraded_turret_cost_ratios), np.max(wall_cost_ratios)])
 
-                if np.max(new_turret_cost_ratios) > 0.05 and np.max(
+                if np.max(new_turret_cost_ratios) > 1 and np.max(
                         new_turret_cost_ratios) == max_cost and self.can_spawn(TURRET, new_max_turret_pos[0]):
                     gamelib.debug_write('add new')
                     gamelib.debug_write(new_max_turret_pos)
                     game_state.attempt_spawn(TURRET, new_max_turret_pos)
                     # self.curr_game_state.attempt_spawn(TURRET, new_max_turret_pos)
                     self.curr_SP -= self.curr_game_state.type_cost(TURRET)[SP]
-                elif np.max(upgraded_turret_cost_ratios) > 0.05 and np.max(
+                elif np.max(upgraded_turret_cost_ratios) > 1 and np.max(
                         upgraded_turret_cost_ratios) == max_cost and self.can_spawn_upgraded_turret(
                     upgraded_max_turret_pos[0], TURRET, SP):
                     gamelib.debug_write('upgrade')
@@ -271,7 +271,7 @@ class Defense(gamelib.AlgoCore):
                     # self.curr_game_state.attempt_spawn(TURRET, upgraded_max_turret_pos)
                     # self.curr_game_state.attempt_upgrade(upgraded_max_turret_pos)
                     self.curr_SP -= upgraded_turret_points[upgraded_max_turret_pos[0][0]][upgraded_max_turret_pos[0][1]]
-                elif np.max(wall_cost_ratios) > 0.05 and True and self.can_spawn_wall(WALL, max_wall_pos[0], SP):
+                elif np.max(wall_cost_ratios) > 1 and True and self.can_spawn_wall(WALL, max_wall_pos[0], SP):
                     gamelib.debug_write('wall')
                     gamelib.debug_write(max_wall_pos)
                     if self.curr_game_state.attempt_spawn(WALL, max_wall_pos):
@@ -338,7 +338,7 @@ class Defense(gamelib.AlgoCore):
             cost = 0
             if path is not None and path[-1] in friendly_edges:
                 if len(scored_locations) > 0:
-                    mult = pow(10 * np.sum(np.all(np.array(scored_locations) == path[-1], axis=1)), 2)
+                    mult = pow(10 * np.sum(np.all(np.array(scored_locations) == path[-1], axis=1)), 1.5)
                 for path_location in path:
                     for unit in self.curr_game_state.get_attackers(path_location, 0):
                         loc_cost = unit.damage_i * pow(unit.health / unit.max_health, 2)
@@ -348,7 +348,7 @@ class Defense(gamelib.AlgoCore):
                             multipliers[path_location[0]][path_location[1]] += mult
             path_costs.append(cost)
 
-        multipliers = multipliers / np.max(multipliers)
+        multipliers = multipliers / np.sqrt(np.max(multipliers))
         multipliers = multipliers * self.curr_game_state.get_resources(player_index=1)[1]
 
         return path_costs, turret_hits, multipliers
