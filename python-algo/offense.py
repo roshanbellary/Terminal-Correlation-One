@@ -19,7 +19,7 @@ class Resource_Tracker():
     def will_enemy_invest(self):
         sp_neg_vals = np.array([sp_val for idx, sp_val in enumerate(self.sp_value) if self.sp_difference[idx] < 0])
         if (len(sp_neg_vals) <= 1):
-            return False
+            return True
         
         avg = np.average(sp_neg_vals)
         stdev = np.std(sp_neg_vals)
@@ -33,8 +33,8 @@ class Offense(gamelib.AlgoCore):
     resource_changes = []
     enemy_health = []
     attacked = []
-    MP_Limiter = 9
-    MP_BOOST = 2
+    MP_Limiter = 7
+    MP_BOOST = 1
     SP = 0
     raised_limiter = False
     def __init__(self, algo_strategy):
@@ -114,7 +114,6 @@ class Offense(gamelib.AlgoCore):
                 else:
                     if not set_arr:
                         set_arr = True 
-                        gamelib.debug_write("Given up on path computations?")
                         dir_array = self.go_to_target_edge(game_map_copy, curr_loc, target_edge)
                         curr_loc = dir_array[dir_index]
                     else:
@@ -161,7 +160,7 @@ class Offense(gamelib.AlgoCore):
                 # gamelib.debug_write("Gbye Scouts")
                 num_scouts = 0
                 break
-            num_scouts = round(scout_health / gamelib.GameUnit(SCOUT, game_state.config).health)
+            num_scouts = round(scout_health / (gamelib.GameUnit(SCOUT, game_state.config).health+3))
             for unit in get_affected_enemy_units:
                 if scout_damage <= 0:
                     break
@@ -191,8 +190,8 @@ class Offense(gamelib.AlgoCore):
         # gamelib.debug_write(f"num_scouts: {num_scouts}")
         if simulated_path[-1] not in points_target_edge:
             num_scouts = 0
-        # gamelib.debug_write(f"Simulated Path: {simulated_path}")
-        # gamelib.debug_write(f"Scouts Surviving: {num_scouts}")
+        gamelib.debug_write(f"Simulated Path: {simulated_path}")
+        gamelib.debug_write(f"Scouts Surviving: {num_scouts}")
         game_state.game_map = game_map_copy
         return (num_scouts, -len(destroyed_attackers))
 
@@ -247,13 +246,13 @@ class Offense(gamelib.AlgoCore):
         num_scouts, _ = max(damages)
         # gamelib.debug_write(f" Mobile Points: {game_state.get_resource(MP)}, Num Scouts:{num_scouts}")
 
-        if (game_state.my_health < 3):
+        if (game_state.my_health < 2):
             return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
 
         # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 30%
         # checks if we are not at MP limit for it to not grow enough in the future
         # if we are at MP limit or if we can make a sizeable enough dent then we go for an attack
-        gamelib.debug_write(f"expected damage: {num_scouts}")
+        gamelib.debug_write(f"expected damage: {num_scouts} and current limit: {self.MP_Limiter}")
         if (self.tracker.will_enemy_invest() and num_scouts < self.MP_Limiter):
             gamelib.debug_write(f"simulated num_scouts: {num_scouts}, enemy_health: {game_state.enemy_health}")
             self.attacked.append(False)
@@ -267,13 +266,14 @@ class Offense(gamelib.AlgoCore):
             ind = find_latest_true(self.attacked)
             percent_change = (self.enemy_health[ind] - self.enemy_health[-1])/self.enemy_health[ind]
             if (percent_change < 0.15 and not self.raised_limiter):
-                self.MP_Limiter += self.MP_BOOST
+                self.MP_Limiter += self.MP_BOOST*(game_state.my_health)/30
                 self.attacked.append(False)
                 self.raised_limiter = True
-            else:
+            elif num_scouts > self.MP_Limiter:
                 spawn_location = friendly_edges[damages.index(max(damages))]
                 return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
-
+            else:
+                self.attacked.append(False)
         else:
             spawn_location = friendly_edges[damages.index(max(damages))]
             return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
