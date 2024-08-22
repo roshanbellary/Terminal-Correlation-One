@@ -322,7 +322,7 @@ class Defense(gamelib.AlgoCore):
             for y in range(self.curr_game_state.game_map.HALF_ARENA):
                 # if y > self.curr_game_state.game_map.HALF_ARENA / 2:
                 #     multipliers[x][y] *= 10
-                multipliers[x][y] *= (pow(y, 2) + np.abs(self.curr_game_state.HALF_ARENA - np.abs(self.curr_game_state.game_map.HALF_ARENA - x)))
+                multipliers[x][y] *= (y + np.abs(self.curr_game_state.HALF_ARENA - np.abs(self.curr_game_state.game_map.HALF_ARENA - x)) / 2)
                 # multipliers[x][y] *= y
 
         enemy_edges = self.curr_game_state.game_map.get_edge_locations(self.curr_game_state.game_map.TOP_LEFT) + \
