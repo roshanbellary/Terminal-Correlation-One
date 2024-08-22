@@ -33,7 +33,7 @@ class Offense(gamelib.AlgoCore):
     resource_changes = []
     enemy_health = []
     attacked = []
-    MP_Limiter = 7
+    MP_Limiter = 9
     MP_BOOST = 1
     SP = 0
     raised_limiter = False
@@ -245,7 +245,6 @@ class Offense(gamelib.AlgoCore):
         spawn_location = friendly_edges[damages.index(max(damages))]
         num_scouts, _ = max(damages)
         # gamelib.debug_write(f" Mobile Points: {game_state.get_resource(MP)}, Num Scouts:{num_scouts}")
-
         if (game_state.my_health < 2):
             return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
 
@@ -254,7 +253,6 @@ class Offense(gamelib.AlgoCore):
         # if we are at MP limit or if we can make a sizeable enough dent then we go for an attack
         gamelib.debug_write(f"expected damage: {num_scouts} and current limit: {self.MP_Limiter}")
         if (self.tracker.will_enemy_invest() and num_scouts < self.MP_Limiter):
-            gamelib.debug_write(f"simulated num_scouts: {num_scouts}, enemy_health: {game_state.enemy_health}")
             self.attacked.append(False)
         elif (len(self.enemy_health) > 2 and True in self.attacked):
             def find_latest_true(arr):
@@ -264,9 +262,9 @@ class Offense(gamelib.AlgoCore):
                 return None
 
             ind = find_latest_true(self.attacked)
-            percent_change = (self.enemy_health[ind] - self.enemy_health[-1])/self.enemy_health[ind]
-            if (percent_change < 0.15 and not self.raised_limiter):
-                self.MP_Limiter += self.MP_BOOST*(game_state.my_health)/30
+            percent_change = (self.enemy_health[ind] - self.enemy_health[-1])
+            if (percent_change < 3 and not self.raised_limiter):
+                self.MP_Limiter += self.MP_BOOST*(1+(game_state.my_health)/30)
                 self.attacked.append(False)
                 self.raised_limiter = True
             elif num_scouts > self.MP_Limiter:
