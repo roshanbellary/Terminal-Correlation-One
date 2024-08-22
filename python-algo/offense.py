@@ -45,19 +45,19 @@ class Offense(gamelib.AlgoCore):
         before_path = [loc.copy()]
         new_path = [loc.copy()]
         direction = []
-        
+
         # Set initial direction based on target edge
         if target_edge == game_map.TOP_LEFT:
             direction = [[0, 1], [-1, 0]]  # Move up, then left
         else:
-            direction = [[0, 1], [1, 0]]   # Move up, then right
-        
+            direction = [[0, 1], [1, 0]]  # Move up, then right
+
         direction_set = 1
-        
+
         while loc not in game_map.get_edge_locations(target_edge):
             # Update location by adding the current direction
             loc = [loc[0] + direction[direction_set][0], loc[1] + direction[direction_set][1]]
-            
+
             # Ensure loc remains within the game bounds
             if not game_map.in_arena_bounds(loc) and loc not in game_map.get_edge_locations(target_edge):
                 # Revert the location change if out of bounds
@@ -65,12 +65,13 @@ class Offense(gamelib.AlgoCore):
                 direction_set = (direction_set + 1) % 2  # Try the other direction
             elif loc != new_path[-1]:
                 new_path.append(loc.copy())  # Append a copy of the current location
-        
+
         # Ensure the final location is added to the path
         if new_path[-1] != loc:
             new_path.append(loc.copy())
-        
+
         return before_path + new_path
+
     def simulate_an_attack(self, game_state, SCOUT, MP, spawn_location):
         num_scouts = game_state.number_affordable(SCOUT)
         track_attacker_health = {}
@@ -82,18 +83,18 @@ class Offense(gamelib.AlgoCore):
         target_edge = game_state.get_target_edge(spawn_location)
         points_target_edge = game_state.game_map.get_edge_locations(target_edge)
         curr_path = game_state.find_path_to_edge(curr_loc, target_edge)
-        #gamelib.debug_write(f"curr_path:{curr_path}")
+        # gamelib.debug_write(f"curr_path:{curr_path}")
         curr_index = 0
         # gamelib.debug_write(f"Starting Location:{curr_loc}")
-        #gamelib.debug_write(f"Target Edge: {points_target_edge}")
+        # gamelib.debug_write(f"Target Edge: {points_target_edge}")
         gave_up = False
-        set_arr = False 
+        set_arr = False
         dir_array = []
         dir_index = 1
         curr_index = 0
         recompute = True
         while True:
-            if (curr_loc[1] < 13 and curr_index < len(curr_path)-1):
+            if (curr_loc[1] < 13 and curr_index < len(curr_path) - 1):
                 curr_index += 1
                 curr_loc = curr_path[curr_index]
                 simulated_path.append(curr_loc.copy())
@@ -121,7 +122,7 @@ class Offense(gamelib.AlgoCore):
                         curr_loc = dir_array[dir_index]
                 if curr_loc == simulated_path[-1]:
                     continue
-                simulated_path.append(curr_loc.copy())   
+                simulated_path.append(curr_loc.copy())
             scout_damage = num_scouts * gamelib.GameUnit(SCOUT, game_state.config).damage_f
             if curr_loc in points_target_edge:
                 break
@@ -130,31 +131,34 @@ class Offense(gamelib.AlgoCore):
             for attacker in current_attackers:
                 if [attacker.x, attacker.y] not in destroyed_attackers:
                     scout_health -= attacker.damage_i
-                    
-            circle = game_state.game_map.get_locations_in_range([curr_loc[0], curr_loc[1]],gamelib.GameUnit(SCOUT,game_state.config).attackRange)
+
+            circle = game_state.game_map.get_locations_in_range([curr_loc[0], curr_loc[1]],
+                                                                gamelib.GameUnit(SCOUT, game_state.config).attackRange)
             get_affected_enemy_units = []
             for loc in circle:
                 if game_state.contains_stationary_unit(loc):
-                    unit =  game_state.contains_stationary_unit(loc)
+                    unit = game_state.contains_stationary_unit(loc)
                     if unit.player_index == 1 and [unit.x, unit.y] not in destroyed_attackers:
                         get_affected_enemy_units.append(game_state.contains_stationary_unit(loc))
+
             def sort_enemy_units(get_affected_enemy_units, current_position):
                 # Define a sorting key function
                 def sort_key(unit):
                     distance_to_current = game_state.game_map.distance_between_locations(
                         [unit.x, unit.y], current_position)
-                    distance_to_edge = min(unit.x,game_state.game_map.ARENA_SIZE - unit.x)
-                    return (distance_to_current, 
-                            unit.health, 
+                    distance_to_edge = min(unit.x, game_state.game_map.ARENA_SIZE - unit.x)
+                    return (distance_to_current,
+                            unit.health,
                             -unit.y,  # Negative for descending order (highest y-value first)
                             distance_to_edge)
-                
+
                 # Sort the list using the key function
                 get_affected_enemy_units.sort(key=sort_key)
                 return get_affected_enemy_units
+
             get_affected_enemy_units = sort_enemy_units(get_affected_enemy_units, loc)
             if (scout_health <= 0):
-                #gamelib.debug_write("Gbye Scouts")
+                # gamelib.debug_write("Gbye Scouts")
                 num_scouts = 0
                 break
             num_scouts = round(scout_health / gamelib.GameUnit(SCOUT, game_state.config).health)
@@ -169,7 +173,9 @@ class Offense(gamelib.AlgoCore):
                         recompute = True
                         game_state.game_map.remove_unit([unit.x, unit.y])
                         destroyed_attackers.append([unit.x, unit.y])
-                        scout_damage -= round(unit.health/gamelib.GameUnit(SCOUT,game_state.config).damage_f) * gamelib.GameUnit(SCOUT,game_state.config).damage_f
+                        scout_damage -= round(
+                            unit.health / gamelib.GameUnit(SCOUT, game_state.config).damage_f) * gamelib.GameUnit(SCOUT,
+                                                                                                                  game_state.config).damage_f
                 else:
                     curr_health = track_attacker_health[tuple([unit.x, unit.y])]
                     if (curr_health > scout_damage):
@@ -179,14 +185,17 @@ class Offense(gamelib.AlgoCore):
                         recompute = True
                         game_state.game_map.remove_unit([unit.x, unit.y])
                         destroyed_attackers.append([unit.x, unit.y])
-                        scout_damage -= round(curr_health/gamelib.GameUnit(SCOUT,game_state.config).damage_f) * gamelib.GameUnit(SCOUT,game_state.config).damage_f
-        #gamelib.debug_write(f"num_scouts: {num_scouts}")
+                        scout_damage -= round(
+                            curr_health / gamelib.GameUnit(SCOUT, game_state.config).damage_f) * gamelib.GameUnit(SCOUT,
+                                                                                                                  game_state.config).damage_f
+        # gamelib.debug_write(f"num_scouts: {num_scouts}")
         if simulated_path[-1] not in points_target_edge:
             num_scouts = 0
         # gamelib.debug_write(f"Simulated Path: {simulated_path}")
         # gamelib.debug_write(f"Scouts Surviving: {num_scouts}")
         game_state.game_map = game_map_copy
         return (num_scouts, -len(destroyed_attackers))
+
     """
         -Attacks should consider low health in case of desparation need to send all MP to send out scouts
             -Do when health < 3
@@ -195,32 +204,34 @@ class Offense(gamelib.AlgoCore):
         -When launching attack
             -If opponent has high SP then launch attack on second least well-defended sector to be careful of 
     """
+
     def send_out_troops(self, game_state, location, SCOUT, SUPPORT):
         self.raised_limiter = False
         # gamelib.debug_write(f"spawn_location:{location}, affordable: {game_state.number_affordable(SCOUT)}")
         game_state.attempt_spawn(SCOUT, location, game_state.number_affordable(SCOUT))
         val = False
         if (location in game_state.game_map.get_edge_locations(
-            game_state.game_map.BOTTOM_LEFT)):
+                game_state.game_map.BOTTOM_LEFT)):
             if (location != [0, 13]):
-                val = game_state.attempt_spawn(SUPPORT, [location[0]-1, location[1]+1], 1)
-                game_state.attempt_remove([location[0]-1, location[1]+1])
+                val = game_state.attempt_spawn(SUPPORT, [location[0] - 1, location[1] + 1], 1)
+                game_state.attempt_remove([location[0] - 1, location[1] + 1])
             else:
-                val = game_state.attempt_spawn(SUPPORT, [location[0]+1, location[1]-1], 1)
-                game_state.attempt_remove([location[0]+1, location[1]-1])
+                val = game_state.attempt_spawn(SUPPORT, [location[0] + 1, location[1] - 1], 1)
+                game_state.attempt_remove([location[0] + 1, location[1] - 1])
         else:
             if (location != [27, 13]):
-                val = game_state.attempt_spawn(SUPPORT, [location[0]+1, location[1]+1], 1)
-                game_state.attempt_remove([location[0]+1, location[1]+1])
+                val = game_state.attempt_spawn(SUPPORT, [location[0] + 1, location[1] + 1], 1)
+                game_state.attempt_remove([location[0] + 1, location[1] + 1])
             else:
-                val = game_state.attempt_spawn(SUPPORT, [location[0]-1, location[1]-1], 1)
-                game_state.attempt_remove([location[0]-1, location[1]-1])
+                val = game_state.attempt_spawn(SUPPORT, [location[0] - 1, location[1] - 1], 1)
+                game_state.attempt_remove([location[0] - 1, location[1] - 1])
         self.attacked.append(True)
         if val != False:
             # gamelib.debug_write(f"SP cost:{game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT,game_state.config).cost[0]} ")
-            return game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT,game_state.config).cost[0]
+            return game_state.get_resource(self.SP) - gamelib.GameUnit(SUPPORT, game_state.config).cost[0]
         else:
-            return game_state.get_resource(self.SP) 
+            return game_state.get_resource(self.SP)
+
     def send_the_cavalry(self, game_state, SCOUT, SUPPORT, MP, SP):
         """
         Find the least damage cost sectors and send troops to attack there
@@ -230,14 +241,15 @@ class Offense(gamelib.AlgoCore):
         self.tracker.add_sp_value(game_state.get_resource(SP, 1))
         friendly_edges = game_state.game_map.get_edge_locations(
             game_state.game_map.BOTTOM_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT)
-        friendly_edges = [loc for loc in friendly_edges if not game_state.contains_stationary_unit(loc) ]
+        friendly_edges = [loc for loc in friendly_edges if not game_state.contains_stationary_unit(loc)]
         damages = [self.simulate_an_attack(game_state, SCOUT, MP, loc) for loc in friendly_edges]
         spawn_location = friendly_edges[damages.index(max(damages))]
         num_scouts, _ = max(damages)
-        #gamelib.debug_write(f" Mobile Points: {game_state.get_resource(MP)}, Num Scouts:{num_scouts}")
+        # gamelib.debug_write(f" Mobile Points: {game_state.get_resource(MP)}, Num Scouts:{num_scouts}")
 
         if (game_state.my_health < 3):
             return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
+
         # checks if the number of surviving is sizeable enough to put a dent in enemy health at least 30%
         # checks if we are not at MP limit for it to not grow enough in the future
         # if we are at MP limit or if we can make a sizeable enough dent then we go for an attack
@@ -251,6 +263,7 @@ class Offense(gamelib.AlgoCore):
                     if arr[i]:
                         return i
                 return None
+
             ind = find_latest_true(self.attacked)
             percent_change = (self.enemy_health[ind] - self.enemy_health[-1])/self.enemy_health[ind]
             if (percent_change < 0.15 and not self.raised_limiter):
@@ -264,5 +277,5 @@ class Offense(gamelib.AlgoCore):
         else:
             spawn_location = friendly_edges[damages.index(max(damages))]
             return self.send_out_troops(game_state, spawn_location, SCOUT, SUPPORT)
-        return game_state.get_resource(self.SP) 
-    
+        return game_state.get_resource(self.SP)
+
